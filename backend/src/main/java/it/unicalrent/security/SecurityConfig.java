@@ -37,52 +37,41 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1) Disabilita CSRF: non necessario per API JWT-based stateless
                 .csrf(csrf -> csrf.disable())
-
-                // 2) Regole di accesso
                 .authorizeHttpRequests(auth -> auth
-                        // — home e static resources sempre pubblici
-                        .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/images/**")
-                        .permitAll()
-                        // — registrazione utenti self-service
-                        .requestMatchers(HttpMethod.POST, "/api/utenti/register")
-                        .permitAll()
-                        // — ricerca veicoli aperta a tutti
-                        .requestMatchers(HttpMethod.GET, "/api/veicoli/**")
-                        .permitAll()
-                        // — tutte le altre operazioni su veicoli riservate a ADMIN
-                        .requestMatchers("/api/veicoli/**")
-                        .hasRole("ADMIN")
-                        // — GET lista prenotazioni riservato a ADMIN
-                        .requestMatchers(HttpMethod.GET, "/api/prenotazioni")
-                        .hasRole("ADMIN")
-                        // — tutte le altre rotte di prenotazioni richiedono autenticazione
-                        .requestMatchers("/api/prenotazioni/**")
-                        .authenticated()
-                        // — qualsiasi altra rotta richiede autenticazione
-                        .anyRequest()
-                        .authenticated()
-                )
+                        // — swagger / OpenAPI UI e JSON
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/webjars/**"           // se serve
+                        ).permitAll()
+                        // 1) register pubblico
+                        .requestMatchers(HttpMethod.POST, "/api/utenti/register").permitAll()
 
-                // 3) Configura il resource-server JWT con converter personalizzato
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                )
+                        // 2) home e static resources
+                        .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/images/**").permitAll()
 
-                // 4) Sessione HTTP in modalità stateless (nessuna HttpSession)
-                .sessionManagement(sess -> sess
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+                        // 3) ricerca veicoli aperta
+                        .requestMatchers(HttpMethod.GET, "/api/veicoli/**").permitAll()
+
+                        // 4) resto veicoli solo ADMIN
+                        .requestMatchers("/api/veicoli/**").hasRole("ADMIN")
+
+                        // 5) prenotazioni
+                        .requestMatchers(HttpMethod.GET, "/api/prenotazioni").hasRole("ADMIN")
+                        .requestMatchers("/api/prenotazioni/**").authenticated()
+
+                        // 6) tutte le altre rotte
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
     }
 
-    /**
-     * Converte il JWT di Keycloak in una collezione di GrantedAuthority:
-     *  1) Mappa gli scope (prefisso "SCOPE_") via JwtGrantedAuthoritiesConverter
-     *  2) Mappa i ruoli da realm_access.roles (prefisso "ROLE_")
-     */
+
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter scopesConverter = new JwtGrantedAuthoritiesConverter();
         scopesConverter.setAuthorityPrefix("SCOPE_");
@@ -91,17 +80,22 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Collection<GrantedAuthority> authorities = new ArrayList<>();
 
-            // 1) Aggiunge gli scope come authority
+            // 1) scope
             authorities.addAll(scopesConverter.convert(jwt));
 
-            // 2) Estrae i ruoli da realm_access.roles
-            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            // 2) realm_access.roles → ROLE_...
+            Map<String,Object> realmAccess = jwt.getClaim("realm_access");
             if (realmAccess != null && realmAccess.containsKey("roles")) {
                 @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) realmAccess.get("roles");
-                roles.stream()
-                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                        .forEach(authorities::add);
+                List<String> ra = (List<String>) realmAccess.get("roles");
+                ra.forEach(r -> authorities.add(new SimpleGrantedAuthority("ROLE_" + r)));
+            }
+
+            // 3) claim top-level "roles" → ROLE_...
+            @SuppressWarnings("unchecked")
+            List<String> topRoles = (List<String>) jwt.getClaim("roles");
+            if (topRoles != null) {
+                topRoles.forEach(r -> authorities.add(new SimpleGrantedAuthority("ROLE_" + r)));
             }
 
             return authorities;

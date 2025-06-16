@@ -74,7 +74,7 @@ public class PrenotazioneService {
         Veicolo veicolo = optVe.get();
 
         // Verifica sovrapposizioni esistenti
-        boolean occupato = prRepo.existsByVeicoloAndInizioLessThanAndFineGreaterThan(veicolo, fine, inizio);
+        boolean occupato = prRepo.existsByVeicoloAndInizioLessThanAndFineGreaterThan(veicolo, inizio, fine);
         if (occupato) {
             throw new BookingConflictException(
                     "Il veicolo con targa " + veicolo.getTarga() + " non è disponibile dal " + inizio + " al " + fine

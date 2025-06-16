@@ -1,15 +1,27 @@
 services:
-
-  db:
+  
+  db-app:
     image: postgres:15
     environment:
       POSTGRES_DB: unicalrentdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_app_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+
+  db-kc:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: keycloakdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_kc_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.2.3
@@ -18,19 +30,22 @@ services:
       - "--http-enabled=true"
       - "--http-host=0.0.0.0"
       - "--http-port=8080"
-      - "--hostname-strict=false"
     ports:
       - "8081:8080"
     environment:
+      KC_HTTPS_REQUIRED: NONE           
+      KC_HOSTNAME_STRICT: "false"
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_DB: postgres
-      KC_DB_URL_HOST: db
-      KC_DB_URL_DATABASE: unicalrentdb
+      KC_DB_URL_HOST: db-kc
+      KC_DB_URL_DATABASE: keycloakdb
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
-    depends_on:
-      - db
+      # KEYCLOAK_IMPORT: /opt/keycloak/data/import/unicalrent-realm.json
+    volumes:
+      - db_kc_data:/opt/keycloak/data    
+      # - ./keycloak/unicalrent-realm.json:/opt/keycloak/data/import/unicalrent-realm.json:ro
 
   backend:
     build:
@@ -38,15 +53,18 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/unicalrentdb
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-app:5432/unicalrentdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      spring.jpa.hibernate.ddl-auto: update
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/unicalrent
       KEYCLOAK_AUTH_SERVER_URL: http://keycloak:8080
       KEYCLOAK_REALM: unicalrent
       KEYCLOAK_CLIENT: unicalrent-client
     depends_on:
-      - db
+      - db-app
       - keycloak
 
 volumes:
-  db_data:
+  db_app_data:
+  db_kc_data:

@@ -1,0 +1,92 @@
+{
+  "realm": "unicalrent",
+  "enabled": true,
+  "sslRequired": "NONE",
+  "registrationAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "description": "Administrator role"
+      },
+      {
+        "name": "UTENTE",
+        "description": "Regular user role"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "unicalrent-client",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["+"],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "realm-roles",
+      "description": "Export realm roles to token",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "user.attribute": "foo",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin-test",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "psw2025",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMIN"],
+      "clientRoles": {
+        "realm-management": ["view-users", "query-groups"]
+      }
+    },
+    {
+      "username": "user-test",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user2025",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["UTENTE"]
+    }
+  ]
+}

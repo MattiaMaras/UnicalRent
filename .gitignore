@@ -1,6 +1,6 @@
 # Maven / Spring
 **/target/
-*.log
+/*.log
 
 # IDE
 .idea/
@@ -13,3 +13,5 @@ frontend/dist/
 
 # Docker
 *.env
+
+/docker-compose.override.yml

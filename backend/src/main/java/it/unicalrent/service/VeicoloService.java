@@ -3,6 +3,7 @@ package it.unicalrent.service;
 
 import it.unicalrent.entity.Veicolo;
 import it.unicalrent.repository.VeicoloRepository;
+import jakarta.annotation.security.PermitAll;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -80,7 +81,7 @@ public class VeicoloService {
      * UTENTE o ADMIN possono invocare.
      */
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('UTENTE','ADMIN')")
+    @PermitAll
     public List<Veicolo> listaTutti() {
         return veRepo.findAll();
     }

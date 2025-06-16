@@ -15,11 +15,8 @@ import java.util.List;
 )
 public class Utente {
 
-    /**
-     * Chiave primaria: UUID fornita da Keycloak
-     */
     @Id
-    @Column(length = 36, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     /** Nome dell’utente */
