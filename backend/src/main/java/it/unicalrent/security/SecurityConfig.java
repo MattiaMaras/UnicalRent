@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.Collection;
 import java.util.ArrayList;
@@ -37,32 +38,28 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(request -> {
+                    CorsConfiguration configuration = new CorsConfiguration();
+                    configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+                    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    configuration.setAllowedHeaders(List.of("*"));
+                    configuration.setAllowCredentials(true);
+                    return configuration;
+                }))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // — swagger / OpenAPI UI e JSON
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/webjars/**"           // se serve
+                                "/webjars/**"
                         ).permitAll()
-                        // 1) register pubblico
-                        .requestMatchers(HttpMethod.POST, "/api/utenti/register").permitAll()
-
-                        // 2) home e static resources
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/images/**").permitAll()
-
-                        // 3) ricerca veicoli aperta
                         .requestMatchers(HttpMethod.GET, "/api/veicoli/**").permitAll()
-
-                        // 4) resto veicoli solo ADMIN
                         .requestMatchers("/api/veicoli/**").hasRole("ADMIN")
-
-                        // 5) prenotazioni
                         .requestMatchers(HttpMethod.GET, "/api/prenotazioni").hasRole("ADMIN")
                         .requestMatchers("/api/prenotazioni/**").authenticated()
-
-                        // 6) tutte le altre rotte
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
@@ -71,8 +68,8 @@ public class SecurityConfig {
         return http.build();
     }
 
-
-    private JwtAuthenticationConverter jwtAuthenticationConverter() {
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter scopesConverter = new JwtGrantedAuthoritiesConverter();
         scopesConverter.setAuthorityPrefix("SCOPE_");
 
@@ -84,18 +81,18 @@ public class SecurityConfig {
             authorities.addAll(scopesConverter.convert(jwt));
 
             // 2) realm_access.roles → ROLE_...
-            Map<String,Object> realmAccess = jwt.getClaim("realm_access");
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
             if (realmAccess != null && realmAccess.containsKey("roles")) {
                 @SuppressWarnings("unchecked")
-                List<String> ra = (List<String>) realmAccess.get("roles");
-                ra.forEach(r -> authorities.add(new SimpleGrantedAuthority("ROLE_" + r)));
+                List<String> roles = (List<String>) realmAccess.get("roles");
+                roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
             }
 
-            // 3) claim top-level "roles" → ROLE_...
+            // 3) top-level roles → ROLE_...
             @SuppressWarnings("unchecked")
             List<String> topRoles = (List<String>) jwt.getClaim("roles");
             if (topRoles != null) {
-                topRoles.forEach(r -> authorities.add(new SimpleGrantedAuthority("ROLE_" + r)));
+                topRoles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
             }
 
             return authorities;

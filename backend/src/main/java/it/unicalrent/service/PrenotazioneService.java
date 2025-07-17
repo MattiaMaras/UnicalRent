@@ -37,7 +37,7 @@ public class PrenotazioneService {
     private final PrenotazioneRepository prRepo;
     private final ServizioGiornoRepository sgRepo;
 
-    public PrenotazioneService(UtenteRepository utRepo, VeicoloRepository veRepo, PrenotazioneRepository prRepo, ServizioGiornoRepository sgRepo) {
+        public PrenotazioneService(UtenteRepository utRepo, VeicoloRepository veRepo, PrenotazioneRepository prRepo, ServizioGiornoRepository sgRepo) {
         this.utRepo = utRepo;
         this.veRepo = veRepo;
         this.prRepo = prRepo;

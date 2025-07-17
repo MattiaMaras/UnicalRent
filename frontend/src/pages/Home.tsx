@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 import { Car, Clock, Shield, Users, ArrowRight, CheckCircle, Star, Zap, Heart } from 'lucide-react';
-import ponteUnical from '../../public/images/ponteUnical.jpg';
+import ponteUnical from '/images/ponteUnical.jpg';
 import {useAuth} from "../contexts/AuthContext.tsx";
 
 

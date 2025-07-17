@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MockAPI } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
+import { getVeicoli, eliminaVeicolo } from '../services/VeicoliService';
 import { Vehicle } from '../types';
-import { Car, Search, Filter, Plus, Edit, Trash2, Fuel, Users, Calendar } from 'lucide-react';
-import {useAuth} from "../contexts/AuthContext.tsx";
+import { Car, Search, Plus, Edit, Trash2, Fuel, Users, Calendar } from 'lucide-react';
 
 const Vehicles: React.FC = () => {
     const { user } = useAuth();
@@ -13,12 +13,12 @@ const Vehicles: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedType, setSelectedType] = useState<string>('');
     const [selectedFuel, setSelectedFuel] = useState<string>('');
-    const [sortBy, setSortBy] = useState<'prezzo' | 'anno' | 'marca'>('prezzo');
+    const [sortBy, setSortBy] = useState<'marca' | 'prezzo' | 'anno'>('marca');
 
     useEffect(() => {
         const loadVehicles = async () => {
             try {
-                const data = await MockAPI.getVehicles();
+                const data = await getVeicoli();
                 setVehicles(data);
                 setFilteredVehicles(data);
             } catch (error) {
@@ -32,27 +32,26 @@ const Vehicles: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        let filtered = vehicles.filter(vehicle => {
+        const filtered = vehicles.filter(vehicle => {
             const matchesSearch = !searchTerm ||
                 vehicle.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 vehicle.modello.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 vehicle.targa.toLowerCase().includes(searchTerm.toLowerCase());
 
             const matchesType = !selectedType || vehicle.tipo === selectedType;
-            const matchesFuel = !selectedFuel || vehicle.carburante === selectedFuel;
+            const matchesFuel = !selectedFuel || vehicle.alimentazione === selectedFuel;
 
             return matchesSearch && matchesType && matchesFuel;
         });
 
-        // Ordinamento
         filtered.sort((a, b) => {
             switch (sortBy) {
+                case 'marca':
+                    return a.marca.localeCompare(b.marca);
                 case 'prezzo':
                     return a.costoOrario - b.costoOrario;
                 case 'anno':
                     return b.anno - a.anno;
-                case 'marca':
-                    return a.marca.localeCompare(b.marca);
                 default:
                     return 0;
             }
@@ -62,9 +61,9 @@ const Vehicles: React.FC = () => {
     }, [vehicles, searchTerm, selectedType, selectedFuel, sortBy]);
 
     const handleDeleteVehicle = async (id: string) => {
-        if (window.confirm('Sei sicuro di voler eliminare questo veicolo?')) {
+        if (window.confirm('Confermi la rimozione del veicolo?')) {
             try {
-                await MockAPI.deleteVehicle(id);
+                await eliminaVeicolo(id);
                 setVehicles(prev => prev.filter(v => v.id !== id));
             } catch (error) {
                 console.error('Errore eliminazione veicolo:', error);
@@ -83,7 +82,6 @@ const Vehicles: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Veicoli Disponibili</h1>
@@ -103,10 +101,8 @@ const Vehicles: React.FC = () => {
                     )}
                 </div>
 
-                {/* Filters */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {/* Search */}
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                             <input
@@ -118,7 +114,6 @@ const Vehicles: React.FC = () => {
                             />
                         </div>
 
-                        {/* Type Filter */}
                         <select
                             value={selectedType}
                             onChange={(e) => setSelectedType(e.target.value)}
@@ -129,7 +124,6 @@ const Vehicles: React.FC = () => {
                             <option value="SCOOTER">Scooter</option>
                         </select>
 
-                        {/* Fuel Filter */}
                         <select
                             value={selectedFuel}
                             onChange={(e) => setSelectedFuel(e.target.value)}
@@ -142,10 +136,9 @@ const Vehicles: React.FC = () => {
                             <option value="IBRIDO">Ibrido</option>
                         </select>
 
-                        {/* Sort */}
                         <select
                             value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as any)}
+                            onChange={(e) => setSortBy(e.target.value as 'prezzo' | 'anno' | 'marca')}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="prezzo">Ordina per prezzo</option>
@@ -155,14 +148,13 @@ const Vehicles: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Vehicles Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredVehicles.map((vehicle) => (
                         <VehicleCard
                             key={vehicle.id}
                             vehicle={vehicle}
-                            isAdmin={user?.role === 'ADMIN'}
                             onDelete={handleDeleteVehicle}
+                            isAdmin={user?.role === 'ADMIN'}
                         />
                     ))}
                 </div>
@@ -185,9 +177,9 @@ const Vehicles: React.FC = () => {
 
 const VehicleCard: React.FC<{
     vehicle: Vehicle;
-    isAdmin: boolean;
     onDelete: (id: string) => void;
-}> = ({ vehicle, isAdmin, onDelete }) => {
+    isAdmin: boolean;
+}> = ({ vehicle, onDelete, isAdmin }) => {
     const getTypeIcon = (type: string) => {
         switch (type) {
             case 'AUTO': return '🚗';
@@ -208,13 +200,16 @@ const VehicleCard: React.FC<{
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            {/* Vehicle Image */}
             <div className="relative h-48 bg-gray-200">
                 {vehicle.immagine ? (
                     <img
                         src={vehicle.immagine}
                         alt={`${vehicle.marca} ${vehicle.modello}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = ''; // fallback vuoto
+                        }}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-6xl">
@@ -222,12 +217,10 @@ const VehicleCard: React.FC<{
                     </div>
                 )}
 
-                {/* Type Badge */}
                 <div className="absolute top-3 left-3 bg-white bg-opacity-90 px-2 py-1 rounded-lg text-xs font-medium">
                     {vehicle.tipo}
                 </div>
 
-                {/* Admin Actions */}
                 {isAdmin && (
                     <div className="absolute top-3 right-3 flex space-x-1">
                         <Link
@@ -246,15 +239,14 @@ const VehicleCard: React.FC<{
                 )}
             </div>
 
-            {/* Vehicle Info */}
             <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-semibold text-gray-900">
                         {vehicle.marca} {vehicle.modello}
                     </h3>
                     <span className="text-lg font-bold text-blue-600">
-            €{vehicle.costoOrario.toFixed(2)}/h
-          </span>
+                        €{vehicle.costoOrario.toFixed(2)}/h
+                    </span>
                 </div>
 
                 <div className="space-y-2 mb-4">
@@ -275,22 +267,19 @@ const VehicleCard: React.FC<{
                     </div>
                 </div>
 
-                {/* Fuel Badge */}
                 <div className="flex items-center justify-between mb-4">
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getFuelColor(vehicle.carburante)}`}>
-            <Fuel className="h-3 w-3 mr-1" />
-              {vehicle.carburante}
-          </span>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getFuelColor(vehicle.alimentazione)}`}>
+                        <Fuel className="h-3 w-3 mr-1" />
+                        {vehicle.alimentazione}
+                    </span>
                 </div>
 
-                {/* Description */}
                 {vehicle.descrizione && (
                     <p className="text-sm text-gray-600 mb-4">
                         {vehicle.descrizione}
                     </p>
                 )}
 
-                {/* Actions */}
                 <div className="flex space-x-2">
                     <Link
                         to={`/prenotazioni/nuova?veicolo=${vehicle.id}`}

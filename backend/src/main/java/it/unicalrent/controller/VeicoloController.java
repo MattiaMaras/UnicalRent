@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-@CrossOrigin(origins = "http://localhost:5173")
+
 @RestController
 @RequestMapping("/api/veicoli")
 public class VeicoloController {
@@ -28,8 +28,20 @@ public class VeicoloController {
     /** Modifica un veicolo esistente (solo ADMIN) */
     @PutMapping("/{id}")
     public Veicolo update(@PathVariable Long id, @RequestBody Veicolo v) {
-        v.setId(id);
-        return veService.aggiornaVeicolo(v);
+        Veicolo esistente = veService.trovaPerId(id);
+        esistente.setMarca(v.getMarca());
+        esistente.setModello(v.getModello());
+        esistente.setTarga(v.getTarga());
+        esistente.setPosti(v.getPosti());
+        esistente.setAlimentazione(v.getAlimentazione());
+        esistente.setDisponibile(v.getDisponibile());
+        esistente.setTipo(v.getTipo());
+        esistente.setCostoOrario(v.getCostoOrario());
+        esistente.setImmagine(v.getImmagine());
+        esistente.setDescrizione(v.getDescrizione());
+        esistente.setAnno(v.getAnno());
+        esistente.setAttivo(v.getAttivo());
+        return veService.aggiornaVeicolo(esistente);
     }
 
     /** Rimuove un veicolo (solo ADMIN) */

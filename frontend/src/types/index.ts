@@ -21,7 +21,7 @@ export interface Vehicle {
     modello: string;
     anno: number;
     tipo: 'AUTO' | 'SCOOTER';
-    carburante: 'BENZINA' | 'DIESEL' | 'ELETTRICO' | 'IBRIDO';
+    alimentazione: 'BENZINA' | 'DIESEL' | 'ELETTRICO' | 'IBRIDO';
     posti: number;
     descrizione?: string;
     costoOrario: number;

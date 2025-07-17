@@ -3,6 +3,7 @@ package it.unicalrent.controller;
 import it.unicalrent.entity.Prenotazione;
 import it.unicalrent.exception.BookingConflictException;
 import it.unicalrent.service.PrenotazioneService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,15 +23,28 @@ public class PrenotazioneController {
 
     /** Crea una nuova prenotazione (UTENTE o ADMIN) */
     @PostMapping
-    public ResponseEntity<?> create(Principal principal, @RequestParam Long veicoloId, @RequestParam String inizio, @RequestParam String fine) {
+    public ResponseEntity<?> create(
+            Principal principal,
+            @RequestParam Long veicoloId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inizio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fine
+    ) {
         try {
             String userId = principal.getName();
-            LocalDateTime dtInizio = LocalDateTime.parse(inizio);
-            LocalDateTime dtFine   = LocalDateTime.parse(fine);
-            Prenotazione p = prService.creaPrenotazione(userId, veicoloId, dtInizio, dtFine);
+
+            Prenotazione p = prService.creaPrenotazione(userId, veicoloId, inizio, fine);
+
+            // POPOLA i dati per evitare problemi lato frontend
+            if (p.getUtente() != null) p.getUtente().setEmail(null); // opzionale
+            if (p.getVeicolo() != null) p.getVeicolo().setDescrizione(null); // opzionale
+
             return ResponseEntity.ok(p);
+
         } catch (BookingConflictException ex) {
             return ResponseEntity.status(409).body(ex.getMessage());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body("Errore interno: " + ex.getMessage());
         }
     }
 

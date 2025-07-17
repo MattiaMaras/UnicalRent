@@ -1,6 +1,13 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef
+} from 'react';
 import Keycloak from 'keycloak-js';
-import { User, AuthContextType } from '../../../../../../../Downloads/project/src/types';
+import { User, AuthContextType } from '../types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -11,7 +18,6 @@ const keycloakConfig = {
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT,
 };
 
-// Istanza Keycloak globale per evitare reinizializzazioni
 let keycloakInstance: Keycloak | null = null;
 
 const getKeycloakInstance = () => {
@@ -21,15 +27,10 @@ const getKeycloakInstance = () => {
   return keycloakInstance;
 };
 
-// Funzione per mappare i ruoli Keycloak ai ruoli dell'applicazione
 const mapKeycloakRoleToAppRole = (keycloak: Keycloak): 'ADMIN' | 'UTENTE' => {
-  // 1. Prova a leggere realm_access e resource_access (compatibilità futura)
   const realmRoles = keycloak.realmAccess?.roles || [];
   const clientRoles = keycloak.resourceAccess?.[keycloakConfig.clientId]?.roles || [];
-
-  // 2. Se vuoti, usa il campo "roles" diretto nel token (come nel tuo caso)
   const parsedRoles = (keycloak.tokenParsed?.roles as string[]) || [];
-
   const allRoles = [...realmRoles, ...clientRoles, ...parsedRoles];
 
   console.log('Ruoli Keycloak trovati:', allRoles);
@@ -38,7 +39,7 @@ const mapKeycloakRoleToAppRole = (keycloak: Keycloak): 'ADMIN' | 'UTENTE' => {
   const adminRolesLower = adminRoles.map(r => r.toLowerCase());
 
   const hasAdminRole = allRoles.some(role =>
-    adminRolesLower.includes(role.toLowerCase())
+      adminRolesLower.includes(role.toLowerCase())
   );
 
   console.log('Has admin role:', hasAdminRole);
@@ -46,18 +47,16 @@ const mapKeycloakRoleToAppRole = (keycloak: Keycloak): 'ADMIN' | 'UTENTE' => {
   return hasAdminRole ? 'ADMIN' : 'UTENTE';
 };
 
-// Funzione per creare un oggetto User dai dati Keycloak
 const createUserFromKeycloak = (keycloakInstance: Keycloak): User => {
   const profile = keycloakInstance.tokenParsed;
-  
+
   console.log('Profile completo:', profile);
-  
+
   return {
     id: profile?.sub || '',
     keycloakId: profile?.sub || '',
     username: profile?.preferred_username || profile?.email || '',
     email: profile?.email || '',
-    // Priorità: given_name/family_name, poi firstName/lastName, poi fallback
     nome: profile?.given_name || profile?.firstName || profile?.name?.split(' ')[0] || '',
     cognome: profile?.family_name || profile?.lastName || profile?.name?.split(' ').slice(1).join(' ') || '',
     firstName: profile?.given_name || profile?.firstName || '',
@@ -76,21 +75,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const initRef = useRef(false);
 
-  // Inizializzazione Keycloak
   useEffect(() => {
-    // Evita doppia inizializzazione
     if (initRef.current) return;
     initRef.current = true;
 
     const initKeycloak = async () => {
       try {
         const keycloak = getKeycloakInstance();
-        
+
         const authenticated = await keycloak.init({
           onLoad: 'check-sso',
           silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
           checkLoginIframe: false,
-          // Aggiungi opzioni per migliorare il debug
           enableLogging: true,
         });
 
@@ -101,19 +97,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('Realm roles:', keycloak.realmAccess?.roles);
           console.log('Client roles:', keycloak.resourceAccess);
           console.log('All resource access:', keycloak.resourceAccess);
-          
+
           setIsAuthenticated(true);
           setToken(keycloak.token || null);
+
+          if (keycloak.token) {
+            localStorage.setItem('token', keycloak.token);
+          }
+
           const userData = createUserFromKeycloak(keycloak);
           console.log('User data created:', userData);
           setUser(userData);
-          
-          // Setup token refresh
+
           keycloak.onTokenExpired = () => {
             keycloak.updateToken(30).then((refreshed) => {
-              if (refreshed) {
-                setToken(keycloak.token || null);
-                // Aggiorna anche i dati utente in caso di cambiamenti
+              if (refreshed && keycloak.token) {
+                setToken(keycloak.token);
+                localStorage.setItem('token', keycloak.token);
                 setUser(createUserFromKeycloak(keycloak));
               }
             }).catch(() => {
@@ -151,6 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);
+    localStorage.removeItem('token');
+
     const keycloak = getKeycloakInstance();
     keycloak.logout({
       redirectUri: window.location.origin
@@ -158,16 +160,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      token, 
-      login, 
-      logout, 
-      isLoading, 
-      isAuthenticated 
-    }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{
+        user,
+        token,
+        login,
+        logout,
+        isLoading,
+        isAuthenticated
+      }}>
+        {children}
+      </AuthContext.Provider>
   );
 };
 

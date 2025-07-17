@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Toast } from '../../../../../../../Downloads/project/src/types';
+import {Toast} from "../types";
 
 interface ToastContextType {
   toasts: Toast[];

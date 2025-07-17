@@ -18,20 +18,13 @@ public class UtenteController {
         this.utService = utService;
     }
 
-    /** Self-registration: nuovo utente con ruolo UTENTE */
-    @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Utente register(@RequestBody Utente u) {
-        return utService.registerUtente(u);
-    }
-
-    /** Profilo dell’utente autenticato */
+    /** Profilo dell'utente autenticato */
     @GetMapping("/me")
     public Utente getMe(Principal principal) {
         return utService.trovaPerId(principal.getName());
     }
 
-    /** Aggiorna il profilo dell’utente autenticato */
+    /** Aggiorna il profilo dell'utente autenticato */
     @PutMapping("/me")
     public Utente updateMe(Principal principal, @RequestBody Utente u) {
         u.setId(principal.getName());

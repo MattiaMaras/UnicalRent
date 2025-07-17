@@ -42,9 +42,37 @@ public class Veicolo {
     @Column(nullable = false, length = 20)
     private String alimentazione;
 
+    /** Tipo veicolo (es. AUTO, SCOOTER) */
+    @Column(nullable = false, length = 20)
+    private String tipo;
+
+    /** Anno di immatricolazione */
+    @Column(nullable = false)
+    private Integer anno;
+
     /** Flag che indica se il veicolo è disponibile per prenotazioni */
     @Column(nullable = false)
     private Boolean disponibile = true;
+
+    /** Flag che indica se il veicolo è attivo nel sistema */
+    @Column(nullable = false)
+    private Boolean attivo = true;
+
+    /** Costo orario di utilizzo del veicolo */
+    @Column(nullable = false)
+    private Double costoOrario;
+
+    /** Descrizione dettagliata del veicolo */
+    @Column(length = 2048)
+    private String descrizione;
+
+    /** URL immagine del veicolo */
+    @Column(length = 2048)
+    private String immagine;
+
+    /** Data di aggiunta del veicolo nel sistema */
+    @Column(nullable = false)
+    private String dataAggiunta;
 
     /**
      * Relazione 1-N con Prenotazione:
@@ -118,12 +146,68 @@ public class Veicolo {
         this.alimentazione = alimentazione;
     }
 
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public Integer getAnno() {
+        return anno;
+    }
+
+    public void setAnno(Integer anno) {
+        this.anno = anno;
+    }
+
     public Boolean getDisponibile() {
         return disponibile;
     }
 
     public void setDisponibile(Boolean disponibile) {
         this.disponibile = disponibile;
+    }
+
+    public Boolean getAttivo() {
+        return attivo;
+    }
+
+    public void setAttivo(Boolean attivo) {
+        this.attivo = attivo;
+    }
+
+    public Double getCostoOrario() {
+        return costoOrario;
+    }
+
+    public void setCostoOrario(Double costoOrario) {
+        this.costoOrario = costoOrario;
+    }
+
+    public String getDescrizione() {
+        return descrizione;
+    }
+
+    public void setDescrizione(String descrizione) {
+        this.descrizione = descrizione;
+    }
+
+    public String getImmagine() {
+        return immagine;
+    }
+
+    public void setImmagine(String immagine) {
+        this.immagine = immagine;
+    }
+
+    public String getDataAggiunta() {
+        return dataAggiunta;
+    }
+
+    public void setDataAggiunta(String dataAggiunta) {
+        this.dataAggiunta = dataAggiunta;
     }
 
     public List<Prenotazione> getPrenotazioni() {

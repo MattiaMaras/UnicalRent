@@ -16,6 +16,7 @@ import Bookings from './pages/Bookings';
 import Profile from './pages/Profile';
 import Error403 from './pages/Error403';
 import Error404 from './pages/Error404';
+import EditVehicle from "./pages/EditVehicle.tsx";
 
 function App() {
     return (
@@ -76,6 +77,15 @@ function App() {
                                 element={
                                     <ProtectedRoute requiredRole="ADMIN">
                                         <AddVehicle />
+                                    </ProtectedRoute>
+                                }
+                            />
+
+                            <Route
+                                path="/veicoli/modifica/:id"
+                                element={
+                                    <ProtectedRoute requiredRole="ADMIN">
+                                        <EditVehicle />
                                     </ProtectedRoute>
                                 }
                             />
