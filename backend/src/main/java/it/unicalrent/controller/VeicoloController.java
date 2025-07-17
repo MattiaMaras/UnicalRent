@@ -2,72 +2,72 @@ package it.unicalrent.controller;
 
 import it.unicalrent.entity.Veicolo;
 import it.unicalrent.service.VeicoloService;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Controller REST per la gestione dei veicoli.
+ * Fornisce operazioni CRUD protette con accessi differenziati per ruolo.
+ */
 @RestController
 @RequestMapping("/api/veicoli")
 public class VeicoloController {
 
-    private final VeicoloService veService;
+    private final VeicoloService veicoloService;
 
-    public VeicoloController(VeicoloService veService) {
-        this.veService = veService;
+    public VeicoloController(VeicoloService veicoloService) {
+        this.veicoloService = veicoloService;
     }
 
-    /** Aggiunge un nuovo veicolo (solo ADMIN) */
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public Veicolo create(@RequestBody Veicolo v) {
-        return veService.creaVeicolo(v);
-    }
-
-    /** Modifica un veicolo esistente (solo ADMIN) */
-    @PutMapping("/{id}")
-    public Veicolo update(@PathVariable Long id, @RequestBody Veicolo v) {
-        Veicolo esistente = veService.trovaPerId(id);
-        esistente.setMarca(v.getMarca());
-        esistente.setModello(v.getModello());
-        esistente.setTarga(v.getTarga());
-        esistente.setPosti(v.getPosti());
-        esistente.setAlimentazione(v.getAlimentazione());
-        esistente.setDisponibile(v.getDisponibile());
-        esistente.setTipo(v.getTipo());
-        esistente.setCostoOrario(v.getCostoOrario());
-        esistente.setImmagine(v.getImmagine());
-        esistente.setDescrizione(v.getDescrizione());
-        esistente.setAnno(v.getAnno());
-        esistente.setAttivo(v.getAttivo());
-        return veService.aggiornaVeicolo(esistente);
-    }
-
-    /** Rimuove un veicolo (solo ADMIN) */
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        veService.eliminaVeicolo(id);
-    }
-
-    /** Dettaglio di un veicolo */
-    @GetMapping("/{id}")
-    public Veicolo getById(@PathVariable Long id) {
-        return veService.trovaPerId(id);
-    }
-
-    /** Elenco di tutti i veicoli */
+    /**
+     * Restituisce tutti i veicoli attivi e disponibili.
+     * Accesso libero per consultazione.
+     */
     @GetMapping
-    public List<Veicolo> listAll() {
-        return veService.listaTutti();
+    public ResponseEntity<List<Veicolo>> listaVeicoliAttivi() {
+        return ResponseEntity.ok(veicoloService.listaVeicoliAttivi());
     }
 
-    /** Veicoli disponibili in una fascia oraria */
-    @GetMapping("/disponibili")
-    public List<Veicolo> listDisponibili(@RequestParam String inizio, @RequestParam String fine) {
-        LocalDateTime dtInizio = LocalDateTime.parse(inizio);
-        LocalDateTime dtFine   = LocalDateTime.parse(fine);
-        return veService.listaDisponibili(dtInizio, dtFine);
+    /**
+     * Restituisce i dettagli di un singolo veicolo per ID.
+     * Accesso libero.
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Veicolo> getVeicolo(@PathVariable Long id) {
+        return ResponseEntity.ok(veicoloService.getVeicoloById(id));
+    }
+
+    /**
+     * Crea un nuovo veicolo (solo per amministratori).
+     */
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Veicolo> aggiungiVeicolo(@Valid @RequestBody Veicolo veicolo) {
+        Veicolo creato = veicoloService.creaVeicolo(veicolo);
+        return ResponseEntity.ok(creato);
+    }
+
+    /**
+     * Modifica i dati di un veicolo esistente (solo per amministratori).
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Veicolo> aggiornaVeicolo(@PathVariable Long id, @Valid @RequestBody Veicolo aggiornato) {
+        return ResponseEntity.ok(veicoloService.aggiornaVeicolo(id, aggiornato));
+    }
+
+    /**
+     * Soft delete: disattiva un veicolo invece di eliminarlo fisicamente (solo per amministratori).
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> eliminaVeicolo(@PathVariable Long id) {
+        veicoloService.eliminaVeicolo(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,21 +3,15 @@ package it.unicalrent.service;
 import it.unicalrent.entity.Ruolo;
 import it.unicalrent.entity.Utente;
 import it.unicalrent.repository.UtenteRepository;
-import jakarta.annotation.security.PermitAll;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Service per la gestione degli Utenti.
- *
- * Qui applichiamo i controlli di sicurezza:
- * - solo ADMIN può creare, aggiornare, listare o eliminare utenti
- * - ADMIN o l’UTENTE proprietario può leggere il proprio profilo
- */
 @Service
 public class UtenteService {
 
@@ -27,74 +21,66 @@ public class UtenteService {
         this.utRepo = utRepo;
     }
 
-
     /**
-     * Registrazione “self-service” di un nuovo UTENTE.
-     * Accessibile a chiunque (anonimo o autenticato).
-     * Imposta il ruolo UTENTE di default.
+     * Restituisce o crea l'utente corrente (estratto da Keycloak).
      */
     @Transactional
-    @PermitAll
-    public Utente registerUtente(Utente u) {
-        u.setRuolo(Ruolo.UTENTE);
-        return utRepo.save(u);
+    public Utente getOrCreateUtenteDaPrincipal(java.security.Principal principal) {
+        String userId = principal.getName();
+        return utRepo.findById(userId)
+                .orElseGet(() -> utRepo.save(estraiUtenteDaJwt(userId)));
     }
 
     /**
-     * Modifica i dati di un utente esistente.
-     * Solo ADMIN può invocare.
+     * Estrae i dati utente da JWT e li trasforma in oggetto Utente persistibile.
      */
-    @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
-    public Utente aggiornaUtente(Utente u) {
-        return utRepo.save(u);
-    }
+    private Utente estraiUtenteDaJwt(String userId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+            String email = jwt.getClaimAsString("email");
+            String nome = jwt.getClaimAsString("given_name");
+            String cognome = jwt.getClaimAsString("family_name");
 
-    /**
-     * Recupera un utente per ID.
-     * ADMIN può recuperare chiunque, un UTENTE solo se il proprio ID.
-     */
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.name")
-    public Utente trovaPerId(String id) {
-        Optional<Utente> opt = utRepo.findById(id);
-        if (!opt.isPresent()) {
-            throw new IllegalArgumentException("Utente non trovato: " + id);
+            Ruolo ruolo = Ruolo.UTENTE;
+            if (jwt.getClaimAsMap("realm_access") != null &&
+                    jwt.getClaimAsMap("realm_access").toString().contains("ADMIN")) {
+                ruolo = Ruolo.ADMIN;
+            }
+
+            Utente u = new Utente();
+            u.setId(userId);
+            u.setEmail(email != null ? email : userId + "@unicalrent.local");
+            u.setNome(nome != null ? nome : "Nome");
+            u.setCognome(cognome != null ? cognome : "Cognome");
+            u.setRuolo(ruolo);
+
+            return u;
         }
-        return opt.get();
+
+        // fallback
+        Utente fallback = new Utente();
+        fallback.setId(userId);
+        fallback.setEmail(userId + "@unicalrent.local");
+        fallback.setNome("Nome");
+        fallback.setCognome("Cognome");
+        fallback.setRuolo(Ruolo.UTENTE);
+        return fallback;
     }
 
     /**
-     * Recupera un utente per email.
-     * Solo ADMIN può invocare.
+     * Lista completa utenti (solo admin).
      */
     @Transactional(readOnly = true)
-    @PreAuthorize("hasRole('ADMIN')")
-    public Utente trovaPerEmail(String email) {
-        Optional<Utente> opt = utRepo.findByEmail(email);
-        if (!opt.isPresent()) {
-            throw new IllegalArgumentException("Utente non trovato per email: " + email);
-        }
-        return opt.get();
-    }
-
-    /**
-     * Elenca tutti gli utenti.
-     * Solo ADMIN può invocare.
-     */
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<Utente> listaUtenti() {
+    public List<Utente> getAllUtenti() {
         return utRepo.findAll();
     }
 
     /**
-     * Elimina un utente per ID.
-     * Solo ADMIN può invocare.
+     * Utente per ID (solo admin).
      */
-    @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
-    public void eliminaUtente(String id) {
-        utRepo.deleteById(id);
+    @Transactional(readOnly = true)
+    public Utente getUtenteById(String id) {
+        return utRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + id));
     }
 }

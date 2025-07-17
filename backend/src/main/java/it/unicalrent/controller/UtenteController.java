@@ -2,7 +2,7 @@ package it.unicalrent.controller;
 
 import it.unicalrent.entity.Utente;
 import it.unicalrent.service.UtenteService;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -12,35 +12,37 @@ import java.util.List;
 @RequestMapping("/api/utenti")
 public class UtenteController {
 
-    private final UtenteService utService;
+    private final UtenteService utenteService;
 
-    public UtenteController(UtenteService utService) {
-        this.utService = utService;
+    public UtenteController(UtenteService utenteService) {
+        this.utenteService = utenteService;
     }
 
-    /** Profilo dell'utente autenticato */
+    /**
+     * Restituisce il profilo dell'utente autenticato.
+     */
     @GetMapping("/me")
-    public Utente getMe(Principal principal) {
-        return utService.trovaPerId(principal.getName());
+    public Utente getProfiloUtente(Principal principal) {
+        return utenteService.getOrCreateUtenteDaPrincipal(principal);
     }
 
-    /** Aggiorna il profilo dell'utente autenticato */
-    @PutMapping("/me")
-    public Utente updateMe(Principal principal, @RequestBody Utente u) {
-        u.setId(principal.getName());
-        return utService.aggiornaUtente(u);
-    }
-
-    /** Elenco di tutti gli utenti (solo ADMIN) */
+    /**
+     * Restituisce tutti gli utenti del sistema.
+     * Accesso riservato all'admin.
+     */
     @GetMapping
-    public List<Utente> listAll() {
-        return utService.listaUtenti();
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<Utente> getAllUtenti() {
+        return utenteService.getAllUtenti();
     }
 
-    /** Elimina un utente per ID (solo ADMIN) */
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable String id) {
-        utService.eliminaUtente(id);
+    /**
+     * Restituisce un singolo utente per ID.
+     * Accesso riservato all'admin.
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Utente getUtenteById(@PathVariable String id) {
+        return utenteService.getUtenteById(id);
     }
 }

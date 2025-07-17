@@ -1,108 +1,125 @@
-// backend/src/main/java/it/unicalrent/service/VeicoloService.java
 package it.unicalrent.service;
 
 import it.unicalrent.entity.Veicolo;
 import it.unicalrent.repository.VeicoloRepository;
-import jakarta.annotation.security.PermitAll;
-import org.springframework.stereotype.Service;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Service per la gestione dei Veicoli.
- *
- * Controlli di sicurezza:
- * - solo ADMIN può creare, aggiornare o eliminare veicoli
- * - UTENTE e ADMIN possono leggere e cercare disponibilità
+ * Servizio per la gestione dei veicoli.
+ * Consente la creazione, modifica, eliminazione e ricerca dei veicoli.
  */
 @Service
 public class VeicoloService {
 
-    private final VeicoloRepository veRepo;
+    private final VeicoloRepository veicoloRepository;
 
-    public VeicoloService(VeicoloRepository veRepo) {
-        this.veRepo = veRepo;
+    public VeicoloService(VeicoloRepository veicoloRepository) {
+        this.veicoloRepository = veicoloRepository;
     }
 
     /**
-     * Aggiunge un nuovo veicolo.
-     * Solo ADMIN può invocare.
+     * Restituisce tutti i veicoli attivi (visibili anche agli utenti).
+     */
+    public List<Veicolo> getVeicoliDisponibili() {
+        return veicoloRepository.findByAttivoTrue();
+    }
+
+    /**
+     * Recupera un veicolo attivo per ID, altrimenti solleva eccezione.
+     */
+    public Veicolo getById(Long id) {
+        return veicoloRepository.findByIdAndAttivoTrue(id)
+                .orElseThrow(() -> new EntityNotFoundException("Veicolo non trovato con ID: " + id));
+    }
+
+    /**
+     * Crea un nuovo veicolo.
+     * Solo ADMIN può accedere.
      */
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
-    public Veicolo creaVeicolo(Veicolo v) {
-        return veRepo.save(v);
+    public Veicolo creaVeicolo(Veicolo veicolo) {
+        // Imposta valori di default se mancanti
+        if (veicolo.getAttivo() == null) {
+            veicolo.setAttivo(true);
+        }
+
+        if (veicolo.getDisponibile() == null) {
+            veicolo.setDisponibile(true);
+        }
+
+        if (veicolo.getDataAggiunta() == null) {
+            veicolo.setDataAggiunta(LocalDate.now());
+        }
+
+        return veicoloRepository.save(veicolo);
     }
 
     /**
-     * Modifica un veicolo esistente.
-     * Solo ADMIN può invocare.
+     * Aggiorna un veicolo esistente.
+     * Solo ADMIN può accedere.
      */
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
-    public Veicolo aggiornaVeicolo(Veicolo v) {
-        return veRepo.save(v);
+    public Veicolo aggiornaVeicolo(Long id, Veicolo aggiornato) {
+        Veicolo esistente = veicoloRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Veicolo non trovato con ID: " + id));
+
+        esistente.setMarca(aggiornato.getMarca());
+        esistente.setModello(aggiornato.getModello());
+        esistente.setTarga(aggiornato.getTarga());
+        esistente.setAnno(aggiornato.getAnno());
+        esistente.setAlimentazione(aggiornato.getAlimentazione());
+        esistente.setTipo(aggiornato.getTipo());
+        esistente.setPosti(aggiornato.getPosti());
+        esistente.setCostoOrario(aggiornato.getCostoOrario());
+        esistente.setDescrizione(aggiornato.getDescrizione());
+        esistente.setImmagine(aggiornato.getImmagine());
+        esistente.setDisponibile(aggiornato.getDisponibile());
+
+        return veicoloRepository.save(esistente);
     }
 
     /**
-     * Recupera un veicolo per ID.
-     * UTENTE o ADMIN possono invocare.
-     */
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('UTENTE','ADMIN')")
-    public Veicolo trovaPerId(Long id) {
-        Optional<Veicolo> opt = veRepo.findById(id);
-        if (!opt.isPresent()) {
-            throw new IllegalArgumentException("Veicolo non trovato: " + id);
-        }
-        return opt.get();
-    }
-
-    /**
-     * Cerca un veicolo per targa.
-     * UTENTE o ADMIN possono invocare.
-     */
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('UTENTE','ADMIN')")
-    public Veicolo trovaPerTarga(String targa) {
-        Optional<Veicolo> opt = veRepo.findByTarga(targa);
-        if (!opt.isPresent()) {
-            throw new IllegalArgumentException("Veicolo non trovato per targa: " + targa);
-        }
-        return opt.get();
-    }
-
-    /**
-     * Elenca tutti i veicoli.
-     * UTENTE o ADMIN possono invocare.
-     */
-    @Transactional(readOnly = true)
-    @PermitAll
-    public List<Veicolo> listaTutti() {
-        return veRepo.findAll();
-    }
-
-    /**
-     * Elenca i veicoli disponibili nella fascia [inizio, fine].
-     * UTENTE o ADMIN possono invocare.
-     */
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('UTENTE','ADMIN')")
-    public List<Veicolo> listaDisponibili(LocalDateTime inizio, LocalDateTime fine) {
-        return veRepo.findAvailable(inizio, fine);
-    }
-
-    /**
-     * Elimina un veicolo per ID.
-     * Solo ADMIN può invocare.
+     * Soft-delete di un veicolo.
+     * Solo ADMIN può accedere.
      */
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public void eliminaVeicolo(Long id) {
-        veRepo.deleteById(id);
+        Veicolo veicolo = veicoloRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Veicolo non trovato con ID: " + id));
+        veicolo.setAttivo(false);
+        veicoloRepository.save(veicolo);
+    }
+
+    /**
+     * Restituisce solo i veicoli attivi (disponibili per la visualizzazione).
+     * Accessibile sia da UTENTE che da ADMIN.
+     */
+    @Transactional(readOnly = true)
+    public List<Veicolo> listaVeicoliAttivi() {
+        return veicoloRepository.findByAttivoTrue();
+    }
+
+    /**
+     * Recupera un veicolo dato il suo ID, se esiste ed è attivo.
+     *
+     * @param id ID del veicolo da cercare
+     * @return il veicolo trovato
+     * @throws IllegalArgumentException se il veicolo non esiste o è disattivato
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public Veicolo getVeicoloById(Long id) {
+        return veicoloRepository.findById(id)
+                .filter(Veicolo::getAttivo)
+                .orElseThrow(() -> new IllegalArgumentException("Veicolo non trovato o disattivato con id: " + id));
     }
 }

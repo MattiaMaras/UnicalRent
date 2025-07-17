@@ -2,39 +2,43 @@ package it.unicalrent.repository;
 
 import it.unicalrent.entity.Veicolo;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository per l'entità Veicolo.
+ * Repository per l'accesso ai dati dei veicoli.
+ * Estende JpaRepository per CRUD completo + query derivate.
  */
 @Repository
 public interface VeicoloRepository extends JpaRepository<Veicolo, Long> {
 
     /**
-     * Recupera un veicolo dato il suo numero di targa.
-     * @param targa targa da cercare
-     * @return Optional contenente il Veicolo, se esistente
+     * Cerca un veicolo tramite targa.
+     * La targa è univoca per ogni veicolo.
      */
     Optional<Veicolo> findByTarga(String targa);
 
     /**
-     * Restituisce tutti i veicoli che non hanno prenotazioni sovrapposte all'intervallo [inizio, fine].
+     * Restituisce tutti i veicoli attivi (usati per prenotazioni e visibilità).
      */
-    @Query("SELECT v FROM Veicolo v "
-            + "WHERE NOT EXISTS ("
-            + "  SELECT 1 FROM Prenotazione p "
-            + "  WHERE p.veicolo = v "
-            + "    AND p.inizio < :fine "
-            + "    AND p.fine   > :inizio"
-            + ")")
-    List<Veicolo> findAvailable(
-            @Param("inizio") LocalDateTime inizio,
-            @Param("fine")   LocalDateTime fine
-    );
+    List<Veicolo> findByAttivoTrue();
+
+    /**
+     * Restituisce tutti i veicoli attivi filtrati per tipo.
+     */
+    List<Veicolo> findByAttivoTrueAndTipo(String tipo);
+
+    /**
+     * Restituisce tutti i veicoli attivi filtrati per alimentazione.
+     */
+    List<Veicolo> findByAttivoTrueAndAlimentazione(String alimentazione);
+
+    /**
+     * Restituisce tutti i veicoli attivi filtrati per tipo e alimentazione.
+     */
+    List<Veicolo> findByAttivoTrueAndTipoAndAlimentazione(String tipo, String alimentazione);
+
+    Optional<Veicolo> findByIdAndAttivoTrue(Long id);
 }

@@ -3,60 +3,122 @@ package it.unicalrent.controller;
 import it.unicalrent.entity.Prenotazione;
 import it.unicalrent.exception.BookingConflictException;
 import it.unicalrent.service.PrenotazioneService;
-import org.springframework.format.annotation.DateTimeFormat;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Controller REST per la gestione delle prenotazioni.
+ */
 @RestController
 @RequestMapping("/api/prenotazioni")
 public class PrenotazioneController {
 
-    private final PrenotazioneService prService;
+    private final PrenotazioneService prenotazioneService;
 
-    public PrenotazioneController(PrenotazioneService prService) {
-        this.prService = prService;
+    public PrenotazioneController(PrenotazioneService prenotazioneService) {
+        this.prenotazioneService = prenotazioneService;
     }
 
-    /** Crea una nuova prenotazione (UTENTE o ADMIN) */
+    /**
+     * Crea una nuova prenotazione (solo UTENTE o ADMIN autenticati).
+     */
     @PostMapping
-    public ResponseEntity<?> create(
+    @PreAuthorize("hasAnyRole('UTENTE', 'ADMIN')")
+    public ResponseEntity<?> creaPrenotazione(
             Principal principal,
-            @RequestParam Long veicoloId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inizio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fine
+            @RequestParam @NotBlank String veicoloId,
+            @RequestParam @NotBlank String inizio,
+            @RequestParam @NotBlank String fine
     ) {
         try {
             String userId = principal.getName();
 
-            Prenotazione p = prService.creaPrenotazione(userId, veicoloId, inizio, fine);
+            Long veicoloIdLong = Long.parseLong(veicoloId);
+            LocalDateTime dataInizio = LocalDateTime.parse(inizio);
+            LocalDateTime dataFine = LocalDateTime.parse(fine);
 
-            // POPOLA i dati per evitare problemi lato frontend
-            if (p.getUtente() != null) p.getUtente().setEmail(null); // opzionale
-            if (p.getVeicolo() != null) p.getVeicolo().setDescrizione(null); // opzionale
+            if (dataInizio.isAfter(dataFine) || dataInizio.equals(dataFine)) {
+                return ResponseEntity.badRequest().body("La data di inizio deve essere precedente a quella di fine.");
+            }
 
-            return ResponseEntity.ok(p);
+            Prenotazione prenotazione = prenotazioneService.creaPrenotazione(userId, veicoloIdLong, dataInizio, dataFine);
+            return ResponseEntity.ok(prenotazione);
 
-        } catch (BookingConflictException ex) {
-            return ResponseEntity.status(409).body(ex.getMessage());
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            return ResponseEntity.status(500).body("Errore interno: " + ex.getMessage());
+        } catch (BookingConflictException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Errore durante la creazione della prenotazione: " + e.getMessage());
         }
     }
 
-    /** Prenotazioni dell’utente autenticato */
-    @GetMapping("/mybookings")
-    public List<Prenotazione> myBookings(Principal principal) {
-        return prService.listaPrenotazioniPerUtente(principal.getName());
+    /**
+     * Modifica una prenotazione esistente (con gli stessi controlli della creazione).
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('UTENTE', 'ADMIN')")
+    public ResponseEntity<?> modificaPrenotazione(
+            Principal principal,
+            @PathVariable Long id,
+            @RequestParam @NotBlank String inizio,
+            @RequestParam @NotBlank String fine
+    ) {
+        try {
+            String userId = principal.getName();
+            LocalDateTime nuovaInizio = LocalDateTime.parse(inizio);
+            LocalDateTime nuovaFine = LocalDateTime.parse(fine);
+
+            if (nuovaInizio.isAfter(nuovaFine) || nuovaInizio.equals(nuovaFine)) {
+                return ResponseEntity.badRequest().body("La data di inizio deve essere precedente a quella di fine.");
+            }
+
+            Prenotazione modificata = prenotazioneService.modificaPrenotazione(id, userId, nuovaInizio, nuovaFine);
+            return ResponseEntity.ok(modificata);
+
+        } catch (BookingConflictException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Errore durante la modifica: " + e.getMessage());
+        }
     }
 
-    /** Tutte le prenotazioni (solo ADMIN) */
+    /**
+     * Elenco delle prenotazioni dell’utente autenticato.
+     */
+    @GetMapping("/mybookings")
+    @PreAuthorize("hasAnyRole('UTENTE', 'ADMIN')")
+    public List<Prenotazione> getPrenotazioniUtente(Principal principal) {
+        return prenotazioneService.listaPrenotazioniPerUtente(principal.getName());
+    }
+
+    /**
+     * Elenco di tutte le prenotazioni (solo ADMIN).
+     */
     @GetMapping
-    public List<Prenotazione> allBookings() {
-        return prService.listaTuttePrenotazioni();
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<Prenotazione> getTuttePrenotazioni() {
+        return prenotazioneService.listaTuttePrenotazioni();
+    }
+
+    /**
+     * Annulla una prenotazione (soft-delete logica).
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('UTENTE', 'ADMIN')")
+    public ResponseEntity<?> annullaPrenotazione(Principal principal, @PathVariable Long id) {
+        try {
+            prenotazioneService.annullaPrenotazione(id, principal.getName());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Errore durante l'annullamento: " + e.getMessage());
+        }
     }
 }
