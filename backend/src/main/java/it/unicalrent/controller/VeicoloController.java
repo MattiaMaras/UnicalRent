@@ -1,11 +1,13 @@
 package it.unicalrent.controller;
 
 import it.unicalrent.dto.VeicoloDTO;
-import it.unicalrent.entity.ServizioGiorno;
+import it.unicalrent.entity.Prenotazione;
+import it.unicalrent.entity.StatoPrenotazione;
 import it.unicalrent.entity.Veicolo;
 import it.unicalrent.mapper.VeicoloMapper;
-import it.unicalrent.repository.ServizioGiornoRepository;
+import it.unicalrent.repository.PrenotazioneRepository;
 import it.unicalrent.service.VeicoloService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,12 +22,12 @@ public class VeicoloController {
 
     private final VeicoloService veicoloService;
     private final VeicoloMapper veicoloMapper;
-    private final ServizioGiornoRepository servizioGiornoRepo; // Aggiungi questa dipendenza
+    private final PrenotazioneRepository prenotazioneRepository; // Cambiato da ServizioGiornoRepository
 
-    public VeicoloController(VeicoloService veicoloService, VeicoloMapper veicoloMapper, ServizioGiornoRepository servizioGiornoRepo) {
+    public VeicoloController(VeicoloService veicoloService, VeicoloMapper veicoloMapper, PrenotazioneRepository prenotazioneRepository) {
         this.veicoloService = veicoloService;
         this.veicoloMapper = veicoloMapper;
-        this.servizioGiornoRepo = servizioGiornoRepo;
+        this.prenotazioneRepository = prenotazioneRepository;
     }
 
     /**
@@ -60,8 +62,10 @@ public class VeicoloController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<VeicoloDTO> aggiornaVeicolo(@PathVariable Long id, @Valid @RequestBody Veicolo aggiornato) {
-        Veicolo veicolo = veicoloService.aggiornaVeicolo(id, aggiornato);
+    public ResponseEntity<VeicoloDTO> aggiornaVeicolo(@PathVariable Long id, @Valid @RequestBody VeicoloDTO aggiornato) {
+        // Converti DTO a entità
+        Veicolo veicoloAggiornato = veicoloMapper.fromDTO(aggiornato);
+        Veicolo veicolo = veicoloService.aggiornaVeicolo(id, veicoloAggiornato);
         return ResponseEntity.ok(veicoloMapper.toDTO(veicolo));
     }
 
@@ -86,13 +90,22 @@ public class VeicoloController {
             LocalDate oggi = LocalDate.now();
             LocalDate limite = oggi.plusDays(30);
             
+            // Ottieni tutte le prenotazioni attive per questo veicolo
+            List<Prenotazione> prenotazioniAttive = prenotazioneRepository.findByVeicoloAndStato(veicolo, StatoPrenotazione.ATTIVA);
+            
             for (LocalDate data = oggi; !data.isAfter(limite); data = data.plusDays(1)) {
-                Optional<ServizioGiorno> sg = servizioGiornoRepo.findByVeicoloAndData(veicolo, data);
+                final LocalDate dataCorrente = data; // Crea una copia final per l'uso nella lambda
+                boolean isOccupata = prenotazioniAttive.stream()
+                    .anyMatch(prenotazione -> {
+                        LocalDate inizioPrenotazione = prenotazione.getDataInizio().toLocalDate();
+                        LocalDate finePrenotazione = prenotazione.getDataFine().toLocalDate();
+                        return !dataCorrente.isBefore(inizioPrenotazione) && !dataCorrente.isAfter(finePrenotazione);
+                    });
                 
-                if (sg.isPresent() && sg.get().getNumeroPrenotazioni() > 0) {
-                    dateOccupate.add(data.toString());
+                if (isOccupata) {
+                    dateOccupate.add(dataCorrente.toString());
                 } else {
-                    dateDisponibili.add(data.toString());
+                    dateDisponibili.add(dataCorrente.toString());
                 }
             }
             
@@ -102,8 +115,32 @@ public class VeicoloController {
             risultato.put("dateOccupate", dateOccupate);
             
             return ResponseEntity.ok(risultato);
+            
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    /**
+     * Restituisce tutti i veicoli (attivi e disattivati) per gestione admin.
+     */
+    @GetMapping("/admin/tutti")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<VeicoloDTO>> listaVeicoliTutti() {
+        List<Veicolo> veicoli = veicoloService.listaVeicoliTutti();
+        return ResponseEntity.ok(veicoloMapper.toDTOList(veicoli));
+    }
+
+    /**
+     * Riattiva un veicolo disattivato.
+     */
+    @PutMapping("/{id}/riattiva")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<VeicoloDTO> riattivaVeicolo(@PathVariable Long id) {
+        veicoloService.riattivaVeicolo(id);
+        Veicolo veicolo = veicoloService.getVeicoloById(id);
+        return ResponseEntity.ok(veicoloMapper.toDTO(veicolo));
     }
 }

@@ -2,57 +2,50 @@ package it.unicalrent.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
-/**
- * Rappresenta una prenotazione effettuata da un utente per un veicolo.
- * Include informazioni su orari, stato e importo totale.
- */
 @Entity
 @Table(name = "prenotazioni")
 public class Prenotazione {
 
-    /** ID univoco della prenotazione */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Veicolo prenotato */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "veicolo_id", nullable = false)
     @NotNull
     private Veicolo veicolo;
 
-    /** Utente che ha effettuato la prenotazione */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "utente_id", nullable = false)
     @NotNull
     private Utente utente;
 
-    /** Data e ora di inizio della prenotazione */
     @Column(nullable = false)
     @NotNull
     private LocalDateTime dataInizio;
 
-    /** Data e ora di fine della prenotazione */
     @Column(nullable = false)
     @NotNull
     private LocalDateTime dataFine;
 
-    /** Stato della prenotazione: RICHIESTA, APPROVATA, ANNULLATA */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatoPrenotazione stato;
 
-    /** Importo totale calcolato in fase di creazione */
     @Column(name = "costo_totale", nullable = false)
     private Double costoTotale;
 
-    /** Eventuale nota dell'utente */
     @Column(length = 2048)
     private String note;
 
-    /** Versione per optimistic locking */
+    // Aggiungi questo campo per la data di creazione
+    @CreationTimestamp
+    @Column(name = "data_creazione", nullable = false, updatable = false)
+    private LocalDateTime dataCreazione;
+
     @Version
     private Long version;
 
@@ -132,5 +125,14 @@ public class Prenotazione {
 
     public Long getVersion() {
         return version;
+    }
+    
+    // Aggiungi getter e setter per dataCreazione
+    public LocalDateTime getDataCreazione() {
+        return dataCreazione;
+    }
+
+    public void setDataCreazione(LocalDateTime dataCreazione) {
+        this.dataCreazione = dataCreazione;
     }
 }

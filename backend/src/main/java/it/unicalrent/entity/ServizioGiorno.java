@@ -101,4 +101,12 @@ public class ServizioGiorno {
         this.numeroPrenotazioni = this.numeroPrenotazioni + 1;
         return this.numeroPrenotazioni;
     }
+    
+    // Aggiungi questo metodo
+    public Integer decrementaPrenotazioni() {
+        if (this.numeroPrenotazioni > 0) {
+            this.numeroPrenotazioni = this.numeroPrenotazioni - 1;
+        }
+        return this.numeroPrenotazioni;
+    }
 }

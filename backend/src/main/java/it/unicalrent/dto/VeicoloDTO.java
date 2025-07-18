@@ -45,4 +45,24 @@ public class VeicoloDTO {
     
     public String getImmagine() { return immagine; }
     public void setImmagine(String immagine) { this.immagine = immagine; }
+    
+    // Aggiungi questi campi mancanti
+    private String descrizione;
+    private Boolean attivo;
+    private Boolean disponibile;
+    private String dataAggiunta; // Come string per il frontend
+    
+    // Getters e Setters
+    // Aggiungi getter e setter per i nuovi campi
+    public String getDescrizione() { return descrizione; }
+    public void setDescrizione(String descrizione) { this.descrizione = descrizione; }
+    
+    public Boolean getAttivo() { return attivo; }
+    public void setAttivo(Boolean attivo) { this.attivo = attivo; }
+    
+    public Boolean getDisponibile() { return disponibile; }
+    public void setDisponibile(Boolean disponibile) { this.disponibile = disponibile; }
+    
+    public String getDataAggiunta() { return dataAggiunta; }
+    public void setDataAggiunta(String dataAggiunta) { this.dataAggiunta = dataAggiunta; }
 }

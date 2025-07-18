@@ -15,7 +15,7 @@ export interface User {
 }
 
 export interface Vehicle {
-    id: string;
+    id: string; // Mantieni string per compatibilità frontend
     targa: string;
     marca: string;
     modello: string;
@@ -26,6 +26,7 @@ export interface Vehicle {
     descrizione?: string;
     costoOrario: number;
     attivo: boolean;
+    disponibile?: boolean; // Aggiungi questo campo
     immagine?: string;
     dataAggiunta: string;
 }

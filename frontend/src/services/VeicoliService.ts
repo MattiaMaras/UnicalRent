@@ -33,8 +33,19 @@ export async function eliminaVeicolo(id: string): Promise<void> {
 }
 
 export async function aggiornaVeicolo(veicolo: Vehicle): Promise<Vehicle> {
-    const response = await axios.put(`/veicoli/${veicolo.id}`, veicolo);
-    return response.data;
+    // Converti l'ID da string a number per il backend
+    const veicoloPerBackend = {
+        ...veicolo,
+        id: parseInt(veicolo.id, 10)
+    };
+    
+    const response = await axios.put(`/veicoli/${veicolo.id}`, veicoloPerBackend);
+    
+    // Converti l'ID da number a string per il frontend
+    return {
+        ...response.data,
+        id: response.data.id.toString()
+    };
 }
 
 export interface DisponibilitaVeicolo {
@@ -45,5 +56,17 @@ export interface DisponibilitaVeicolo {
 
 export async function getDisponibilitaVeicolo(veicoloId: string): Promise<DisponibilitaVeicolo> {
     const response = await axios.get(`/veicoli/${veicoloId}/disponibilita`);
+    return response.data;
+}
+
+// Ottieni tutti i veicoli (per admin)
+export async function getVeicoliTutti(): Promise<Vehicle[]> {
+    const response = await axios.get('/veicoli/admin/tutti');
+    return response.data;
+}
+
+// Riattiva un veicolo
+export async function riattivaVeicolo(id: string): Promise<Vehicle> {
+    const response = await axios.put(`/veicoli/${id}/riattiva`);
     return response.data;
 }

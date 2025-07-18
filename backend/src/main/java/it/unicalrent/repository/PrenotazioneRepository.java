@@ -1,6 +1,7 @@
 package it.unicalrent.repository;
 
 import it.unicalrent.entity.Prenotazione;
+import it.unicalrent.entity.StatoPrenotazione;
 import it.unicalrent.entity.Utente;
 import it.unicalrent.entity.Veicolo;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -47,6 +48,23 @@ public interface PrenotazioneRepository extends JpaRepository<Prenotazione, Long
     List<Prenotazione> findByVeicoloAndGiorno(
             @Param("veicoloId") Long veicoloId,
             @Param("giorno") LocalDateTime giorno
+    );
+
+    /**
+     * Trova tutte le prenotazioni per un dato veicolo e stato.
+     */
+    List<Prenotazione> findByVeicoloAndStato(Veicolo veicolo, StatoPrenotazione stato);
+    
+    /**
+     * Trova tutte le prenotazioni attive per un veicolo in un periodo specifico.
+     */
+    @Query("SELECT p FROM Prenotazione p WHERE p.veicolo = :veicolo AND p.stato = :stato AND " +
+           "((p.dataInizio <= :fine AND p.dataFine >= :inizio))")
+    List<Prenotazione> findByVeicoloAndStatoAndPeriodo(
+        @Param("veicolo") Veicolo veicolo,
+        @Param("stato") StatoPrenotazione stato,
+        @Param("inizio") LocalDateTime inizio,
+        @Param("fine") LocalDateTime fine
     );
 
 }

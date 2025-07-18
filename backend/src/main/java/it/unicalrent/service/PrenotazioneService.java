@@ -10,13 +10,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Servizio per la gestione delle prenotazioni, con supporto a:
@@ -153,7 +153,7 @@ public class PrenotazioneService {
     
         // Creazione e salvataggio della prenotazione
         Prenotazione pren = new Prenotazione(utente, veicolo, inizio, fine);
-        pren.setStato(StatoPrenotazione.APPROVATA);
+        pren.setStato(StatoPrenotazione.ATTIVA); // Cambiato da RICHIESTA ad ATTIVA
         pren.setCostoTotale(costoTotale);
     
         return prenotazioneRepo.save(pren);
@@ -180,14 +180,46 @@ public class PrenotazioneService {
     /**
      * Annulla una prenotazione (soft delete logico).
      */
+    /**
+     * Cancella una prenotazione dell'utente (soft-delete logica).
+     */
     @Transactional
-    public void annullaPrenotazione(Long id, String userId) {
-        Prenotazione p = prenotazioneRepo.findById(id).orElseThrow();
-        if (!p.getUtente().getId().equals(userId)) {
-            throw new SecurityException("Non puoi annullare una prenotazione altrui");
+    @PreAuthorize("hasAnyRole('UTENTE','ADMIN')")
+    public void cancellaPrenotazione(Long prenId, String userId) {
+        Prenotazione prenotazione = prenotazioneRepo.findById(prenId)
+                .orElseThrow(() -> new IllegalArgumentException("Prenotazione non trovata"));
+    
+        if (!prenotazione.getUtente().getId().equals(userId)) {
+            throw new SecurityException("Non puoi cancellare una prenotazione altrui");
         }
-        p.setStato(StatoPrenotazione.ANNULLATA);
-        prenotazioneRepo.save(p);
+    
+        if (prenotazione.getStato() != StatoPrenotazione.ATTIVA) {
+            throw new IllegalArgumentException("Puoi cancellare solo prenotazioni attive");
+        }
+    
+        // Verifica la finestra di 2 ore
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime twoHoursFromNow = now.plusHours(2);
+        if (prenotazione.getDataInizio().isBefore(twoHoursFromNow)) {
+            throw new IllegalArgumentException("Non puoi cancellare una prenotazione che inizia tra meno di 2 ore");
+        }
+    
+        // Cambia lo stato a ANNULLATA
+        prenotazione.setStato(StatoPrenotazione.ANNULLATA);
+        
+        // Decrementa i contatori ServizioGiorno
+        LocalDate giorno = prenotazione.getDataInizio().toLocalDate();
+        while (!giorno.isAfter(prenotazione.getDataFine().toLocalDate())) {
+            Optional<ServizioGiorno> sgOpt = servizioGiornoRepo.findByVeicoloAndData(prenotazione.getVeicolo(), giorno);
+            if (sgOpt.isPresent()) {
+                ServizioGiorno sg = sgOpt.get();
+                sg.decrementaPrenotazioni();
+                servizioGiornoRepo.save(sg);
+            }
+            giorno = giorno.plusDays(1);
+        }
+        
+        prenotazioneRepo.save(prenotazione);
     }
 
     @Transactional(readOnly = true)
@@ -202,5 +234,36 @@ public class PrenotazioneService {
         // Assicurati che l'utente esista nel database
         getOrCreateUtenteDaJWT(userId);
         return prenotazioneRepo.findByUtenteId(userId);
+    }
+    
+    /**
+     * Metodo di utilità per ricalcolare tutti i contatori ServizioGiorno
+     * basandosi sulle prenotazioni attive nel database.
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void ricalcolaContatori() {
+        // Azzera tutti i contatori
+        List<ServizioGiorno> tuttiServizi = servizioGiornoRepo.findAll();
+        for (ServizioGiorno sg : tuttiServizi) {
+            sg.setNumeroPrenotazioni(0);
+            servizioGiornoRepo.save(sg);
+        }
+        
+        // Ricalcola basandosi sulle prenotazioni attive
+        List<Prenotazione> prenotazioniAttive = prenotazioneRepo.findAll().stream()
+                .filter(p -> p.getStato() == StatoPrenotazione.ATTIVA)
+                .collect(Collectors.toList());
+        
+        for (Prenotazione p : prenotazioniAttive) {
+            LocalDate giorno = p.getDataInizio().toLocalDate();
+            while (!giorno.isAfter(p.getDataFine().toLocalDate())) {
+                ServizioGiorno sg = servizioGiornoRepo.findByVeicoloAndData(p.getVeicolo(), giorno)
+                        .orElse(new ServizioGiorno(p.getVeicolo(), giorno));
+                sg.incrementaPrenotazioni();
+                servizioGiornoRepo.save(sg);
+                giorno = giorno.plusDays(1);
+            }
+        }
     }
 }

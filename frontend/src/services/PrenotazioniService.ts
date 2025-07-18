@@ -58,5 +58,5 @@ export const creaPrenotazione = async (
  * Cancella una prenotazione (soft-delete)
  */
 export async function cancellaPrenotazione(id: string): Promise<void> {
-    await axios.delete(`/prenotazioni/${id}`);
+    await axios.put(`/prenotazioni/${id}/cancella`);
 }

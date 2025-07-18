@@ -13,6 +13,7 @@ import Vehicles from './pages/Vehicles';
 import AddVehicle from './pages/AddVehicle';
 import NewBooking from './pages/NewBooking';
 import Bookings from './pages/Bookings';
+import BookingDetails from './pages/BookingDetails';
 import Profile from './pages/Profile';
 import Error403 from './pages/Error403';
 import Error404 from './pages/Error404';
@@ -59,6 +60,14 @@ function App() {
                                 element={
                                     <ProtectedRoute>
                                         <Bookings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/prenotazioni/:id"
+                                element={
+                                    <ProtectedRoute>
+                                        <BookingDetails />
                                     </ProtectedRoute>
                                 }
                             />

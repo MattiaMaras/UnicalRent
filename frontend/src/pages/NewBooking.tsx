@@ -6,6 +6,17 @@ import { Vehicle } from '../types';
 import { getVeicoli, getDisponibilitaVeicolo, DisponibilitaVeicolo } from '../services/VeicoliService';
 import { creaPrenotazione } from '../services/PrenotazioniService';
 
+interface ErrorResponse {
+  response?: {
+    status: number;
+    data: {
+      tipo?: string;
+      messaggio?: string;
+      dettaglio?: string;
+    };
+  };
+}
+
 const NewBooking: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -14,6 +25,7 @@ const NewBooking: React.FC = () => {
   const [veicoli, setVeicoli] = useState<Vehicle[]>([]);
   const [disponibilita, setDisponibilita] = useState<DisponibilitaVeicolo | null>(null);
   const [loadingDisponibilita, setLoadingDisponibilita] = useState(false);
+  const [erroreValidazione, setErroreValidazione] = useState('');
   const [formData, setFormData] = useState({
     veicoloId: searchParams.get('veicolo') || '',
     dataInizio: '',
@@ -23,6 +35,96 @@ const NewBooking: React.FC = () => {
   });
 
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+
+  // Funzione per ottenere la data corrente in formato date
+  const getMinDate = () => {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  };
+
+  // Funzione per gestire il cambio della data di inizio
+  const handleDataInizioChange = (value: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(value);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      setErroreValidazione('La data di inizio non può essere precedente a oggi');
+      return;
+    }
+    
+    setErroreValidazione('');
+    setFormData(prev => ({ ...prev, dataInizio: value }));
+    
+    // Se la data di fine è precedente o uguale alla nuova data di inizio, resettala
+    if (formData.dataFine && value && new Date(value) >= new Date(formData.dataFine)) {
+      setFormData(prev => ({ ...prev, dataFine: '' }));
+    }
+  };
+
+  // Funzione per gestire il cambio dell'ora di inizio
+  const handleOraInizioChange = (value: string) => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    // Se è oggi, verifica che l'ora non sia nel passato
+    if (formData.dataInizio === today) {
+      const currentTime = now.toTimeString().slice(0, 5);
+      if (value < currentTime) {
+        setErroreValidazione('L\'ora di inizio non può essere nel passato');
+        return;
+      }
+    }
+    
+    setErroreValidazione('');
+    setFormData(prev => ({ ...prev, oraInizio: value }));
+  };
+
+  // Funzione per gestire il cambio della data di fine
+  const handleDataFineChange = (value: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(value);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      setErroreValidazione('La data di fine non può essere precedente a oggi');
+      return;
+    }
+    
+    if (formData.dataInizio && selectedDate <= new Date(formData.dataInizio)) {
+      setErroreValidazione('La data di fine deve essere successiva a quella di inizio');
+      return;
+    }
+    
+    setErroreValidazione('');
+    setFormData(prev => ({ ...prev, dataFine: value }));
+  };
+
+  // Funzione per gestire il cambio dell'ora di fine
+  const handleOraFineChange = (value: string) => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    // Se è oggi, verifica che l'ora non sia nel passato
+    if (formData.dataFine === today) {
+      const currentTime = now.toTimeString().slice(0, 5);
+      if (value < currentTime) {
+        setErroreValidazione('L\'ora di fine non può essere nel passato');
+        return;
+      }
+    }
+    
+    // Se è lo stesso giorno della data di inizio, verifica che l'ora sia successiva
+    if (formData.dataInizio === formData.dataFine && formData.oraInizio && value <= formData.oraInizio) {
+      setErroreValidazione('L\'ora di fine deve essere successiva a quella di inizio');
+      return;
+    }
+    
+    setErroreValidazione('');
+    setFormData(prev => ({ ...prev, oraFine: value }));
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,7 +147,24 @@ const NewBooking: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Gestisci i campi di data e ora con validazione
+    switch (name) {
+      case 'dataInizio':
+        handleDataInizioChange(value);
+        break;
+      case 'oraInizio':
+        handleOraInizioChange(value);
+        break;
+      case 'dataFine':
+        handleDataFineChange(value);
+        break;
+      case 'oraFine':
+        handleOraFineChange(value);
+        break;
+      default:
+        setFormData(prev => ({ ...prev, [name]: value }));
+    }
 
     if (name === 'veicoloId') {
       const selected = veicoli.find(v => v.id.toString() === value);
@@ -77,10 +196,21 @@ const NewBooking: React.FC = () => {
     }
   }, [formData.veicoloId]);
 
-  // Funzione per verificare se una data è disponibile
-  const isDataDisponibile = (data: string) => {
-    if (!disponibilita) return true;
-    return disponibilita.dateDisponibili.includes(data);
+  // Funzione per ottenere le date non disponibili nel periodo selezionato
+  const getDateNonDisponibili = () => {
+    if (!disponibilita || !formData.dataInizio || !formData.dataFine) return [];
+    
+    const dataInizio = new Date(formData.dataInizio);
+    const dataFine = new Date(formData.dataFine);
+    const dateNonDisponibili: string[] = [];
+    
+    for (let data = new Date(dataInizio); data <= dataFine; data.setDate(data.getDate() + 1)) {
+      const dataStr = data.toISOString().split('T')[0];
+      if (!disponibilita.dateDisponibili.includes(dataStr)) {
+        dateNonDisponibili.push(dataStr);
+      }
+    }
+    return dateNonDisponibili;
   };
 
   // Funzione per verificare se il periodo selezionato è disponibile
@@ -93,7 +223,7 @@ const NewBooking: React.FC = () => {
     // Verifica ogni giorno nel periodo selezionato
     for (let data = new Date(dataInizio); data <= dataFine; data.setDate(data.getDate() + 1)) {
       const dataStr = data.toISOString().split('T')[0];
-      if (!isDataDisponibile(dataStr)) {
+      if (!disponibilita.dateDisponibili.includes(dataStr)) {
         return false;
       }
     }
@@ -135,22 +265,23 @@ const NewBooking: React.FC = () => {
       await creaPrenotazione(formData.veicoloId, inizioStr, fineStr);
       showToast('success', 'Prenotazione effettuata con successo');
       navigate('/prenotazioni');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Errore:', error);
       
-      // Gestione errori migliorata
-      if (error.response?.status === 400) {
-        const errorData = error.response.data;
+      const errorResponse = error as ErrorResponse;
+      
+      if (errorResponse.response?.status === 400) {
+        const errorData = errorResponse.response.data;
         if (typeof errorData === 'object' && errorData.tipo === 'VALIDATION_ERROR') {
-          showToast('error', errorData.messaggio);
+          showToast('error', errorData.messaggio || 'Errore di validazione');
         } else {
           showToast('error', 'Dati non validi. Controlla i campi inseriti.');
         }
-      } else if (error.response?.status === 409) {
-        const errorData = error.response.data;
+      } else if (errorResponse.response?.status === 409) {
+        const errorData = errorResponse.response.data;
         if (typeof errorData === 'object' && errorData.tipo === 'BOOKING_CONFLICT') {
           showToast('error', 
-            `${errorData.messaggio} ${errorData.dettaglio || 'Controlla le date disponibili nella sezione a destra.'}`
+            `${errorData.messaggio || 'Conflitto di prenotazione'} ${errorData.dettaglio || 'Controlla le date disponibili nella sezione a destra.'}`
           );
         } else {
           showToast('error', 'Il veicolo non è disponibile nelle date selezionate. Prova con date diverse.');
@@ -217,7 +348,8 @@ const NewBooking: React.FC = () => {
                           name="dataInizio"
                           value={formData.dataInizio}
                           onChange={handleChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          min={getMinDate()}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                       <label htmlFor="oraInizio" className="block text-sm font-medium text-gray-700 mb-2 mt-4">
                         Ora Inizio
@@ -228,7 +360,7 @@ const NewBooking: React.FC = () => {
                           name="oraInizio"
                           value={formData.oraInizio}
                           onChange={handleChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -241,7 +373,8 @@ const NewBooking: React.FC = () => {
                           name="dataFine"
                           value={formData.dataFine}
                           onChange={handleChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          min={formData.dataInizio || getMinDate()}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                       <label htmlFor="oraFine" className="block text-sm font-medium text-gray-700 mb-2 mt-4">
                         Ora Fine
@@ -252,10 +385,17 @@ const NewBooking: React.FC = () => {
                           name="oraFine"
                           value={formData.oraFine}
                           onChange={handleChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                     </div>
                   </div>
+
+                  {/* Messaggio di errore */}
+                  {erroreValidazione && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-600">{erroreValidazione}</p>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
                     <button
@@ -267,7 +407,8 @@ const NewBooking: React.FC = () => {
                     </button>
                     <button
                         type="submit"
-                        className="inline-flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                        disabled={!!erroreValidazione}
+                        className="inline-flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Save className="h-5 w-5 mr-2" /> Prenota
                     </button>
@@ -296,24 +437,33 @@ const NewBooking: React.FC = () => {
                         {selectedVehicle.tipo} - {selectedVehicle.alimentazione} - {selectedVehicle.posti} posti
                       </p>
 
-                      {/* Sezione disponibilità */}
+                      {/* Sezione disponibilità semplificata */}
                       {loadingDisponibilita ? (
                         <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                           <p className="text-sm text-blue-600">Caricamento disponibilità...</p>
                         </div>
-                      ) : disponibilita ? (
+                      ) : disponibilita && formData.dataInizio && formData.dataFine ? (
                         <div className="mb-4">
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">Disponibilità (prossimi 30 giorni)</h4>
-                          {disponibilita.dateOccupate.length > 0 && (
-                            <div className="mb-2 p-2 bg-red-50 rounded">
-                              <p className="text-xs text-red-600">Date non disponibili: {disponibilita.dateOccupate.length}</p>
-                            </div>
-                          )}
-                          {formData.dataInizio && formData.dataFine && !isPeriodoDisponibile() && (
-                            <div className="mb-2 p-2 bg-yellow-50 rounded">
-                              <p className="text-xs text-yellow-600">⚠️ Periodo selezionato non completamente disponibile</p>
-                            </div>
-                          )}
+                          {(() => {
+                            const dateNonDisponibili = getDateNonDisponibili();
+                            
+                            return dateNonDisponibili.length > 0 ? (
+                              <div className="p-3 bg-red-50 rounded-lg">
+                                <h4 className="text-sm font-medium text-red-700 mb-2">⚠️ Date non disponibili nel periodo</h4>
+                                <div className="flex flex-wrap gap-1">
+                                  {dateNonDisponibili.map(data => (
+                                    <span key={data} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                                      {new Date(data).toLocaleDateString('it-IT', { 
+                                        day: '2-digit', 
+                                        month: '2-digit',
+                                        year: '2-digit'
+                                      })}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null;
+                          })()}
                         </div>
                       ) : null}
 

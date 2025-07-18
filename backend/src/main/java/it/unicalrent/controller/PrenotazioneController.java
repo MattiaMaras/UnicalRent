@@ -135,14 +135,49 @@ public class PrenotazioneController {
      * Annulla una prenotazione (soft-delete logica).
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('UTENTE', 'ADMIN')")
-    public ResponseEntity<?> annullaPrenotazione(Principal principal, @PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> eliminaPrenotazione(@PathVariable Long id) {
+        prenotazioneService.eliminaPrenotazione(id);
+        return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * Ricalcola tutti i contatori ServizioGiorno (solo ADMIN).
+     */
+    @PostMapping("/ricalcola-contatori")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> ricalcolaContatori() {
         try {
-            prenotazioneService.annullaPrenotazione(id, principal.getName());
-            return ResponseEntity.ok().build();
+            prenotazioneService.ricalcolaContatori();
+            Map<String, String> response = new HashMap<>();
+            response.put("messaggio", "Contatori ricalcolati con successo");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Errore durante l'annullamento: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("errore", "Errore durante il ricalcolo dei contatori: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+    
+    /**
+     * Cancella una prenotazione dell'utente (soft-delete logica).
+     */
+    @PutMapping("/{id}/cancella")
+    @PreAuthorize("hasAnyRole('UTENTE', 'ADMIN')")
+    public ResponseEntity<?> cancellaPrenotazione(
+            Principal principal,
+            @PathVariable Long id
+    ) {
+        try {
+            String userId = principal.getName();
+            prenotazioneService.cancellaPrenotazione(id, userId);
+            return ResponseEntity.ok().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body("Non puoi cancellare una prenotazione altrui");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Errore durante la cancellazione: " + e.getMessage());
         }
     }
 }

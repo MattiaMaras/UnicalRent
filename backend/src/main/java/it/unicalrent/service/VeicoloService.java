@@ -122,4 +122,25 @@ public class VeicoloService {
                 .filter(Veicolo::getAttivo)
                 .orElseThrow(() -> new IllegalArgumentException("Veicolo non trovato o disattivato con id: " + id));
     }
+
+    /**
+     * Restituisce tutti i veicoli (attivi e disattivati) per la gestione admin.
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<Veicolo> listaVeicoliTutti() {
+        return veicoloRepository.findAll();
+    }
+
+    /**
+     * Riattiva un veicolo disattivato.
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void riattivaVeicolo(Long id) {
+        Veicolo veicolo = veicoloRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Veicolo non trovato con ID: " + id));
+        veicolo.setAttivo(true);
+        veicoloRepository.save(veicolo);
+    }
 }
