@@ -87,26 +87,47 @@ const Dashboard: React.FC = () => {
   }
 
   const isAdmin = hasRole('ADMIN');
+  
+  // FIX: Usa username invece di id per il matching
   const userBookings = bookings.filter(b => 
     b.utente?.username === user?.id || 
     b.utente?.email === user?.email
   );
-  
-  console.log('FIX APPLICATA - User bookings found:', userBookings.length);
 
   // Correzioni per le statistiche admin
   const activeBookings = bookings.filter(b => b.stato === 'ATTIVA');
   const completedBookings = bookings.filter(b => b.stato === 'COMPLETATA');
-  const totalRevenue = completedBookings.reduce((sum, b) => sum + b.costoTotale, 0);
-  const avgBookingValue = completedBookings.length > 0 ? totalRevenue / completedBookings.length : 0;
+  
+  // MIGLIORAMENTO: Includi anche prenotazioni attive nei ricavi per mostrare dati più significativi
+  const revenueBookings = bookings.filter(b => b.stato === 'COMPLETATA' || b.stato === 'ATTIVA');
+  const totalRevenue = revenueBookings.reduce((sum, b) => sum + (b.costoTotale || 0), 0);
+  const avgBookingValue = revenueBookings.length > 0 ? totalRevenue / revenueBookings.length : 0;
   
   // Correzioni per le statistiche utente
   const userActiveBookings = userBookings.filter(b => b.stato === 'ATTIVA');
   const userCompletedBookings = userBookings.filter(b => b.stato === 'COMPLETATA');
-  const totalSpent = userBookings.filter(b => b.stato === 'COMPLETATA' || b.stato === 'ATTIVA').reduce((sum, b) => sum + b.costoTotale, 0);
+  const totalSpent = userBookings.filter(b => b.stato === 'COMPLETATA' || b.stato === 'ATTIVA').reduce((sum, b) => sum + (b.costoTotale || 0), 0);
   
   const visibleBookings = isAdmin ? bookings : userBookings;
 
+  // DEBUG SPECIFICO PER RICAVI ADMIN
+  if (isAdmin) {
+    console.log('=== DEBUG RICAVI ADMIN ===');
+    console.log('Total bookings:', bookings.length);
+    console.log('Completed bookings:', completedBookings.length);
+    console.log('Completed bookings details:', completedBookings.map(b => ({
+      id: b.id,
+      stato: b.stato,
+      costoTotale: b.costoTotale,
+      dataInizio: b.dataInizio,
+      veicolo: b.veicolo?.marca + ' ' + b.veicolo?.modello
+    })));
+    console.log('Total revenue calculation:', totalRevenue);
+    console.log('Average booking value:', avgBookingValue);
+    console.log('Revenue per booking:', completedBookings.map(b => b.costoTotale));
+    console.log('========================');
+  }
+  
   // Debug per capire perché vedi 0 prenotazioni attive
   console.log('=== DEBUG DASHBOARD ===');
   console.log('User:', user);
@@ -162,14 +183,14 @@ const Dashboard: React.FC = () => {
       value: `€${totalRevenue.toFixed(2)}`,
       icon: DollarSign,
       color: 'bg-purple-500',
-      change: `da ${completedBookings.length} prenotazioni`
+      change: `da ${revenueBookings.length} prenotazioni`
     },
     {
       title: 'Valore Medio',
       value: `€${avgBookingValue.toFixed(2)}`,
       icon: TrendingUp,
       color: 'bg-orange-500',
-      change: 'per prenotazione'
+      change: revenueBookings.length > 0 ? 'per prenotazione' : 'nessun dato'
     }
   ] : [
     {
