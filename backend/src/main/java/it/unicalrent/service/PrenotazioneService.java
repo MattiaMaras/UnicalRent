@@ -105,7 +105,13 @@ public class PrenotazioneService {
         if (!inizio.isBefore(fine)) {
             throw new IllegalArgumentException("La data di inizio deve essere precedente alla data di fine.");
         }
-    
+        
+        // Validazione durata minima di un'ora
+        long minutiDurata = java.time.Duration.between(inizio, fine).toMinutes();
+        if (minutiDurata < 60) {
+            throw new IllegalArgumentException("La durata minima della prenotazione deve essere di almeno un'ora.");
+        }
+
         Utente utente = getOrCreateUtenteDaJWT(userId);
         Veicolo veicolo = veicoloRepo.findById(veicoloId)
                 .orElseThrow(() -> new IllegalArgumentException("Veicolo non trovato"));

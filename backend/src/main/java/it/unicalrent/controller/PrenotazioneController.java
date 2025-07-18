@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // Aggiungi l'import
 import it.unicalrent.dto.PrenotazioneDTO;
@@ -45,19 +47,37 @@ public class PrenotazioneController {
             Long veicoloIdLong = Long.parseLong(veicoloId);
             LocalDateTime dataInizio = LocalDateTime.parse(inizio);
             LocalDateTime dataFine = LocalDateTime.parse(fine);
-
+    
             if (dataInizio.isAfter(dataFine) || dataInizio.equals(dataFine)) {
-                return ResponseEntity.badRequest().body("La data di inizio deve essere precedente a quella di fine.");
+                Map<String, Object> errore = new HashMap<>();
+                errore.put("tipo", "VALIDATION_ERROR");
+                errore.put("messaggio", "La data di inizio deve essere precedente a quella di fine.");
+                return ResponseEntity.badRequest().body(errore);
             }
-
+    
             Prenotazione prenotazione = prenotazioneService.creaPrenotazione(userId, veicoloIdLong, dataInizio, dataFine);
             return ResponseEntity.ok(prenotazione);
-
+    
+        } catch (IllegalArgumentException e) {
+            // Gestione errori di validazione (inclusa durata minima)
+            Map<String, Object> errore = new HashMap<>();
+            errore.put("tipo", "VALIDATION_ERROR");
+            errore.put("messaggio", e.getMessage());
+            return ResponseEntity.badRequest().body(errore);
         } catch (BookingConflictException e) {
-            return ResponseEntity.status(409).body(e.getMessage());
+            // Errore dettagliato per conflitti di prenotazione
+            Map<String, Object> errore = new HashMap<>();
+            errore.put("tipo", "BOOKING_CONFLICT");
+            errore.put("messaggio", "Il veicolo non è disponibile nelle date selezionate.");
+            errore.put("dettaglio", "Prova a selezionare date diverse o controlla la disponibilità del veicolo.");
+            errore.put("veicoloId", veicoloId);
+            return ResponseEntity.status(409).body(errore);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Errore durante la creazione della prenotazione: " + e.getMessage());
+            Map<String, Object> errore = new HashMap<>();
+            errore.put("tipo", "INTERNAL_ERROR");
+            errore.put("messaggio", "Errore durante la creazione della prenotazione.");
+            errore.put("dettaglio", e.getMessage());
+            return ResponseEntity.internalServerError().body(errore);
         }
     }
 

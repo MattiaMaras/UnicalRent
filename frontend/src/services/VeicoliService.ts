@@ -36,3 +36,14 @@ export async function aggiornaVeicolo(veicolo: Vehicle): Promise<Vehicle> {
     const response = await axios.put(`/veicoli/${veicolo.id}`, veicolo);
     return response.data;
 }
+
+export interface DisponibilitaVeicolo {
+    veicoloId: number;
+    dateDisponibili: string[];
+    dateOccupate: string[];
+}
+
+export async function getDisponibilitaVeicolo(veicoloId: string): Promise<DisponibilitaVeicolo> {
+    const response = await axios.get(`/veicoli/${veicoloId}/disponibilita`);
+    return response.data;
+}

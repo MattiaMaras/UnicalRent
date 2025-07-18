@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Save, ArrowLeft } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { Vehicle } from '../types';
-import { getVeicoli } from '../services/VeicoliService';
+import { getVeicoli, getDisponibilitaVeicolo, DisponibilitaVeicolo } from '../services/VeicoliService';
 import { creaPrenotazione } from '../services/PrenotazioniService';
 
 const NewBooking: React.FC = () => {
@@ -12,6 +12,8 @@ const NewBooking: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const [veicoli, setVeicoli] = useState<Vehicle[]>([]);
+  const [disponibilita, setDisponibilita] = useState<DisponibilitaVeicolo | null>(null);
+  const [loadingDisponibilita, setLoadingDisponibilita] = useState(false);
   const [formData, setFormData] = useState({
     veicoloId: searchParams.get('veicolo') || '',
     dataInizio: '',
@@ -59,20 +61,55 @@ const NewBooking: React.FC = () => {
     return Math.max(1, ore) * selectedVehicle.costoOrario;
   };
 
+  // Carica disponibilità quando cambia il veicolo
+  useEffect(() => {
+    if (formData.veicoloId) {
+      setLoadingDisponibilita(true);
+      getDisponibilitaVeicolo(formData.veicoloId)
+        .then(setDisponibilita)
+        .catch(err => {
+          console.error('Errore caricamento disponibilità:', err);
+          setDisponibilita(null);
+        })
+        .finally(() => setLoadingDisponibilita(false));
+    } else {
+      setDisponibilita(null);
+    }
+  }, [formData.veicoloId]);
+
+  // Funzione per verificare se una data è disponibile
+  const isDataDisponibile = (data: string) => {
+    if (!disponibilita) return true;
+    return disponibilita.dateDisponibili.includes(data);
+  };
+
+  // Funzione per verificare se il periodo selezionato è disponibile
+  const isPeriodoDisponibile = () => {
+    if (!disponibilita || !formData.dataInizio || !formData.dataFine) return true;
+    
+    const dataInizio = new Date(formData.dataInizio);
+    const dataFine = new Date(formData.dataFine);
+    
+    // Verifica ogni giorno nel periodo selezionato
+    for (let data = new Date(dataInizio); data <= dataFine; data.setDate(data.getDate() + 1)) {
+      const dataStr = data.toISOString().split('T')[0];
+      if (!isDataDisponibile(dataStr)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const { veicoloId, dataInizio, oraInizio, dataFine, oraFine } = formData;
-
-    if (!veicoloId || !dataInizio || !oraInizio || !dataFine || !oraFine) {
+    
+    if (!formData.veicoloId || !formData.dataInizio || !formData.oraInizio || !formData.dataFine || !formData.oraFine) {
       showToast('error', 'Compila tutti i campi');
       return;
     }
 
-    // Formato ISO completo con secondi
-    const inizioStr = `${dataInizio}T${oraInizio}:00`;
-    const fineStr = `${dataFine}T${oraFine}:00`;
-
+    const inizioStr = `${formData.dataInizio}T${formData.oraInizio}`;
+    const fineStr = `${formData.dataFine}T${formData.oraFine}`;
     const inizio = new Date(inizioStr);
     const fine = new Date(fineStr);
 
@@ -80,18 +117,47 @@ const NewBooking: React.FC = () => {
       showToast('error', 'La data di fine deve essere successiva a quella di inizio');
       return;
     }
+    
+    // Validazione durata minima di un'ora
+    const durataMinuti = (fine.getTime() - inizio.getTime()) / (1000 * 60);
+    if (durataMinuti < 60) {
+      showToast('error', 'La durata minima della prenotazione deve essere di almeno un\'ora');
+      return;
+    }
+
+    // Verifica disponibilità del periodo selezionato
+    if (!isPeriodoDisponibile()) {
+      showToast('error', 'Il veicolo non è disponibile in una o più date del periodo selezionato');
+      return;
+    }
 
     try {
-      await creaPrenotazione(
-          veicoloId,
-          inizioStr,
-          fineStr
-      );
+      await creaPrenotazione(formData.veicoloId, inizioStr, fineStr);
       showToast('success', 'Prenotazione effettuata con successo');
       navigate('/prenotazioni');
-    } catch (error: unknown) {
-      showToast('error', 'Errore nella prenotazione');
+    } catch (error: any) {
       console.error('Errore:', error);
+      
+      // Gestione errori migliorata
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'object' && errorData.tipo === 'VALIDATION_ERROR') {
+          showToast('error', errorData.messaggio);
+        } else {
+          showToast('error', 'Dati non validi. Controlla i campi inseriti.');
+        }
+      } else if (error.response?.status === 409) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'object' && errorData.tipo === 'BOOKING_CONFLICT') {
+          showToast('error', 
+            `${errorData.messaggio} ${errorData.dettaglio || 'Controlla le date disponibili nella sezione a destra.'}`
+          );
+        } else {
+          showToast('error', 'Il veicolo non è disponibile nelle date selezionate. Prova con date diverse.');
+        }
+      } else {
+        showToast('error', 'Errore nella prenotazione. Riprova più tardi.');
+      }
     }
   };
 
@@ -229,6 +295,27 @@ const NewBooking: React.FC = () => {
                       <p className="text-sm text-gray-600 mb-3">
                         {selectedVehicle.tipo} - {selectedVehicle.alimentazione} - {selectedVehicle.posti} posti
                       </p>
+
+                      {/* Sezione disponibilità */}
+                      {loadingDisponibilita ? (
+                        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                          <p className="text-sm text-blue-600">Caricamento disponibilità...</p>
+                        </div>
+                      ) : disponibilita ? (
+                        <div className="mb-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Disponibilità (prossimi 30 giorni)</h4>
+                          {disponibilita.dateOccupate.length > 0 && (
+                            <div className="mb-2 p-2 bg-red-50 rounded">
+                              <p className="text-xs text-red-600">Date non disponibili: {disponibilita.dateOccupate.length}</p>
+                            </div>
+                          )}
+                          {formData.dataInizio && formData.dataFine && !isPeriodoDisponibile() && (
+                            <div className="mb-2 p-2 bg-yellow-50 rounded">
+                              <p className="text-xs text-yellow-600">⚠️ Periodo selezionato non completamente disponibile</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
 
                       {formData.dataInizio && formData.oraInizio && formData.dataFine && formData.oraFine && (
                           <>
