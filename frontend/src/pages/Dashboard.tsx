@@ -87,22 +87,68 @@ const Dashboard: React.FC = () => {
   }
 
   const isAdmin = hasRole('ADMIN');
-  const userBookings = bookings.filter(b => b.utente?.id === user?.id);
+  const userBookings = bookings.filter(b => 
+    b.utente?.username === user?.id || 
+    b.utente?.email === user?.email
+  );
+  
+  console.log('FIX APPLICATA - User bookings found:', userBookings.length);
+
+  // Correzioni per le statistiche admin
   const activeBookings = bookings.filter(b => b.stato === 'ATTIVA');
   const completedBookings = bookings.filter(b => b.stato === 'COMPLETATA');
   const totalRevenue = completedBookings.reduce((sum, b) => sum + b.costoTotale, 0);
   const avgBookingValue = completedBookings.length > 0 ? totalRevenue / completedBookings.length : 0;
-  const totalSpent = userBookings.reduce((sum, b) => sum + b.costoTotale, 0);
-
+  
+  // Correzioni per le statistiche utente
+  const userActiveBookings = userBookings.filter(b => b.stato === 'ATTIVA');
+  const userCompletedBookings = userBookings.filter(b => b.stato === 'COMPLETATA');
+  const totalSpent = userBookings.filter(b => b.stato === 'COMPLETATA' || b.stato === 'ATTIVA').reduce((sum, b) => sum + b.costoTotale, 0);
+  
   const visibleBookings = isAdmin ? bookings : userBookings;
 
+  // Debug per capire perché vedi 0 prenotazioni attive
+  console.log('=== DEBUG DASHBOARD ===');
+  console.log('User:', user);
+  console.log('Is Admin:', isAdmin);
+  console.log('Total bookings loaded:', bookings.length);
+  console.log('Raw bookings from API:', bookings);
+  
+  // Debug dettagliato di ogni prenotazione
+  bookings.forEach((booking, index) => {
+    console.log(`Booking ${index + 1}:`, {
+      id: booking.id,
+      stato: booking.stato,
+      utente: booking.utente, // Oggetto completo
+      utenteId: booking.utente?.id,
+      utenteKeycloakId: booking.utente?.keycloakId,
+      utenteName: booking.utente?.nome,
+      utenteEmail: booking.utente?.email,
+      veicolo: booking.veicolo?.marca + ' ' + booking.veicolo?.modello,
+      dataInizio: booking.dataInizio,
+      costoTotale: booking.costoTotale
+    });
+    // Espandi completamente l'oggetto utente
+    console.log(`Booking ${index + 1} - Utente completo:`, booking.utente);
+  });
+  
+  console.log('User ID to match:', user?.id);
+  console.log('User keycloakId:', user?.keycloakId);
+  console.log('User bookings (filtered by user ID):', userBookings.length);
+  console.log('User active bookings:', userActiveBookings.length);
+  console.log('User completed bookings:', userCompletedBookings.length);
+  console.log('Admin active bookings:', activeBookings.length);
+  console.log('Admin completed bookings:', completedBookings.length);
+  console.log('Visible bookings for current user:', visibleBookings.length);
+  console.log('========================');
+  
   const stats = isAdmin ? [
     {
       title: 'Veicoli Totali',
       value: vehicles.length,
       icon: Car,
       color: 'bg-blue-500',
-      change: '+2 questo mese'
+      change: `${vehicles.filter(v => v.attivo).length} attivi`
     },
     {
       title: 'Prenotazioni Attive',
@@ -116,7 +162,7 @@ const Dashboard: React.FC = () => {
       value: `€${totalRevenue.toFixed(2)}`,
       icon: DollarSign,
       color: 'bg-purple-500',
-      change: '+15% vs mese scorso'
+      change: `da ${completedBookings.length} prenotazioni`
     },
     {
       title: 'Valore Medio',
@@ -128,31 +174,31 @@ const Dashboard: React.FC = () => {
   ] : [
     {
       title: 'Prenotazioni Attive',
-      value: userBookings.filter(b => b.stato === 'ATTIVA').length,
+      value: userActiveBookings.length,
       icon: Clock,
       color: 'bg-blue-500',
-      change: ''
+      change: userActiveBookings.length > 0 ? 'in corso' : ''
     },
     {
       title: 'Noleggi Completati',
-      value: userBookings.filter(b => b.stato === 'COMPLETATA').length,
+      value: userCompletedBookings.length,
       icon: Calendar,
       color: 'bg-green-500',
-      change: ''
+      change: userCompletedBookings.length > 0 ? 'terminati' : ''
     },
     {
       title: 'Totale Speso',
       value: `€${totalSpent.toFixed(2)}`,
       icon: DollarSign,
       color: 'bg-purple-500',
-      change: ''
+      change: userBookings.length > 0 ? `in ${userBookings.length} prenotazioni` : ''
     },
     {
       title: 'Veicoli Disponibili',
-      value: vehicles.length,
+      value: vehicles.filter(v => v.attivo).length,
       icon: Car,
       color: 'bg-orange-500',
-      change: ''
+      change: 'per nuove prenotazioni'
     }
   ];
 
