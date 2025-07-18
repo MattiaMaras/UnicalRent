@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Save } from 'lucide-react';
+import { ArrowLeft, Calendar, Save, CreditCard, AlertCircle } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Vehicle } from '../types';
 import { getVeicoli, getDisponibilitaVeicolo, DisponibilitaVeicolo } from '../services/VeicoliService';
 import { creaPrenotazione } from '../services/PrenotazioniService';
+import { hasCartaCreditoValida } from '../services/CartaCreditoService';
+import CartaCreditoForm from '../components/CartaCreditoForm';
 
 interface ErrorResponse {
   response?: {
@@ -20,12 +23,19 @@ interface ErrorResponse {
 const NewBooking: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [veicoli, setVeicoli] = useState<Vehicle[]>([]);
   const [disponibilita, setDisponibilita] = useState<DisponibilitaVeicolo | null>(null);
   const [loadingDisponibilita, setLoadingDisponibilita] = useState(false);
   const [erroreValidazione, setErroreValidazione] = useState('');
+  
+  // Stati mancanti da aggiungere
+  const [checkingCarta, setCheckingCarta] = useState(true);
+  const [hasCartaValida, setHasCartaValida] = useState(false);
+  const [showCartaForm, setShowCartaForm] = useState(false);
+  
   const [formData, setFormData] = useState({
     veicoloId: searchParams.get('veicolo') || '',
     dataInizio: '',
@@ -256,8 +266,39 @@ const NewBooking: React.FC = () => {
     return true;
   };
 
+  // Verifica carta di credito all'avvio
+  useEffect(() => {
+    const verificaCarta = async () => {
+      try {
+        const hasCard = await hasCartaCreditoValida();
+        setHasCartaValida(hasCard);
+      } catch (error) {
+        console.error('Errore verifica carta:', error);
+        setHasCartaValida(false);
+      } finally {
+        setCheckingCarta(false);
+      }
+    };
+
+    if (user) {
+      verificaCarta();
+    }
+  }, [user]);
+
+  const handleCartaSuccess = async () => {
+    setShowCartaForm(false);
+    setHasCartaValida(true);
+    showToast('success', 'Carta di credito aggiunta con successo! Ora puoi procedere con la prenotazione.');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verifica carta di credito prima di procedere
+    if (!hasCartaValida) {
+      setShowCartaForm(true);
+      return;
+    }
     
     if (!formData.veicoloId || !formData.dataInizio || !formData.oraInizio || !formData.dataFine || !formData.oraFine) {
       showToast('error', 'Compila tutti i campi');
@@ -296,6 +337,14 @@ const NewBooking: React.FC = () => {
       
       const errorResponse = error as ErrorResponse;
       
+      // Gestisci errore carta di credito mancante
+      if (errorResponse.response?.data?.messaggio?.includes('carta di credito')) {
+        setHasCartaValida(false);
+        setShowCartaForm(true);
+        showToast('error', 'È necessario inserire una carta di credito per procedere con la prenotazione');
+        return;
+      }
+      
       if (errorResponse.response?.status === 400) {
         const errorData = errorResponse.response.data;
         if (typeof errorData === 'object' && errorData.tipo === 'VALIDATION_ERROR') {
@@ -318,9 +367,21 @@ const NewBooking: React.FC = () => {
     }
   };
 
+  if (checkingCarta) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verifica dati utente...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
           <div className="mb-8">
             <button
                 onClick={() => navigate('/dashboard')}
@@ -338,6 +399,28 @@ const NewBooking: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Avviso carta di credito */}
+          {!hasCartaValida && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-amber-800">Carta di Credito Richiesta</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Per effettuare una prenotazione è necessario inserire una carta di credito valida.
+                  </p>
+                  <button
+                    onClick={() => setShowCartaForm(true)}
+                    className="mt-2 inline-flex items-center px-3 py-1 bg-amber-600 text-white text-sm rounded-md hover:bg-amber-700 transition-colors"
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    Aggiungi Carta
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
@@ -436,7 +519,15 @@ const NewBooking: React.FC = () => {
                         disabled={!!erroreValidazione}
                         className="inline-flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Save className="h-5 w-5 mr-2" /> Prenota
+                      {!hasCartaValida ? (
+                        <>
+                          <CreditCard className="h-5 w-5 mr-2" /> Aggiungi Carta e Prenota
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-5 w-5 mr-2" /> Prenota
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
@@ -518,6 +609,27 @@ const NewBooking: React.FC = () => {
             </div>
           </div>
         </div>
+        
+        {/* Modal per inserimento carta di credito */}
+        {showCartaForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Aggiungi Carta di Credito</h2>
+                <button
+                  onClick={() => setShowCartaForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <CartaCreditoForm
+                onSuccess={handleCartaSuccess}
+                onCancel={() => setShowCartaForm(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
   );
 };

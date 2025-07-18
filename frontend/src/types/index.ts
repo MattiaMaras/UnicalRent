@@ -2,7 +2,7 @@ export interface User {
     id: string;
     username: string;
     email: string;
-    roles: string[];  // Cambiato da 'role' a 'roles' per supportare più ruoli
+    roles: string[];
     nome?: string;
     cognome?: string;
     telefono?: string;
@@ -12,6 +12,20 @@ export interface User {
     keycloakId?: string;
     firstName?: string;
     lastName?: string;
+    // Campi carta di credito
+    numeroCarta?: string;
+    scadenzaCarta?: string;
+    cvvCarta?: string;
+    intestatarioCarta?: string;
+    hasCartaCredito?: boolean;
+}
+
+// Nuova interfaccia per i dati della carta di credito
+export interface CartaCredito {
+    numeroCarta: string;
+    scadenzaCarta: string;
+    cvvCarta: string;
+    intestatarioCarta: string;
 }
 
 export interface Vehicle {

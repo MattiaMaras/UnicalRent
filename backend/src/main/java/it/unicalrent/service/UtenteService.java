@@ -1,5 +1,6 @@
 package it.unicalrent.service;
 
+import it.unicalrent.dto.CartaCreditoDTO;
 import it.unicalrent.entity.Ruolo;
 import it.unicalrent.entity.Utente;
 import it.unicalrent.repository.UtenteRepository;
@@ -82,5 +83,54 @@ public class UtenteService {
     public Utente getUtenteById(String id) {
         return utRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + id));
+    }
+
+    /**
+     * Aggiorna i dati della carta di credito per l'utente
+     */
+    @Transactional
+    public Utente aggiornaCartaCredito(String userId, CartaCreditoDTO cartaDTO) {
+        Utente utente = utRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + userId));
+
+        utente.setNumeroCarta(cartaDTO.getNumeroCarta());
+        utente.setScadenzaCarta(cartaDTO.getScadenzaCarta());
+        utente.setCvvCarta(cartaDTO.getCvvCarta());
+        utente.setIntestatarioCarta(cartaDTO.getIntestatarioCarta());
+
+        return utRepo.save(utente);
+    }
+
+    /**
+     * Verifica se l'utente ha una carta di credito valida
+     */
+    @Transactional(readOnly = true)
+    public boolean hasCartaCreditoValida(String userId) {
+        return utRepo.findById(userId)
+                .map(Utente::hasCartaCredito)
+                .orElse(false);
+    }
+
+    /**
+     * Ottiene i dati della carta di credito (mascherati per sicurezza)
+     */
+    @Transactional(readOnly = true)
+    public CartaCreditoDTO getCartaCreditoMascherata(String userId) {
+        Utente utente = utRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + userId));
+
+        if (!utente.hasCartaCredito()) {
+            return null;
+        }
+
+        // Maschera il numero della carta (mostra solo le ultime 4 cifre)
+        String numeroMascherato = "**** **** **** " + utente.getNumeroCarta().substring(12);
+        
+        return new CartaCreditoDTO(
+                numeroMascherato,
+                utente.getScadenzaCarta(),
+                "***", // CVV sempre mascherato
+                utente.getIntestatarioCarta()
+        );
     }
 }

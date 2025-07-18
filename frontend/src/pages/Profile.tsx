@@ -1,42 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
-import { User, Mail, Phone, Calendar, Save, ExternalLink, Shield } from 'lucide-react';
+import { User, Mail, Phone, Calendar, ExternalLink, Shield } from 'lucide-react';
 
 const Profile: React.FC = () => {
   const { user, hasRole } = useAuth();
-  const { showToast } = useToast();
-  const [loading, setLoading] = useState(false);
-
-  // Form per dati modificabili localmente
-  const [formData, setFormData] = useState({
-    telefono: user?.telefono || ''
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      // Qui dovresti implementare la chiamata API per aggiornare solo i dati modificabili
-      // come il telefono, mentre nome/cognome/email vengono da Keycloak
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      showToast('success', 'Informazioni aggiornate con successo!');
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      showToast('error', 'Errore durante l\'aggiornamento delle informazioni');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleKeycloakAccountManagement = () => {
     // Reindirizza alla gestione account Keycloak
@@ -150,14 +117,14 @@ const Profile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Local Profile Form - Solo per dati non gestiti da Keycloak */}
+              {/* Informazioni da Keycloak - Solo lettura */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div className="p-6 border-b border-gray-100">
                   <h3 className="text-lg font-semibold text-gray-900">Informazioni Aggiuntive</h3>
-                  <p className="text-gray-600 text-sm mt-1">Aggiorna le informazioni non gestite da Keycloak</p>
+                  <p className="text-gray-600 text-sm mt-1">Informazioni provenienti da Keycloak</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <div className="p-6 space-y-6">
                   {/* Campi di sola lettura per dati Keycloak */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -196,38 +163,7 @@ const Profile: React.FC = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                     />
                   </div>
-
-                  {/* Campo modificabile */}
-                  <div>
-                    <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-2">
-                      Telefono
-                    </label>
-                    <input
-                        type="tel"
-                        id="telefono"
-                        name="telefono"
-                        value={formData.telefono}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Il tuo numero di telefono"
-                    />
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="inline-flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {loading ? (
-                          <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                      ) : (
-                          <Save className="h-5 w-5 mr-2" />
-                      )}
-                      {loading ? 'Salvando...' : 'Salva Modifiche'}
-                    </button>
-                  </div>
-                </form>
+                </div>
               </div>
             </div>
           </div>

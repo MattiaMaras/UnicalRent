@@ -2,7 +2,6 @@ package it.unicalrent.repository;
 
 import it.unicalrent.entity.Prenotazione;
 import it.unicalrent.entity.StatoPrenotazione;
-import it.unicalrent.entity.Utente;
 import it.unicalrent.entity.Veicolo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

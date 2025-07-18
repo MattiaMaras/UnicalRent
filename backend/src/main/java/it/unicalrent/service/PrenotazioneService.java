@@ -32,13 +32,16 @@ public class PrenotazioneService {
     private final VeicoloRepository veicoloRepo;
     private final PrenotazioneRepository prenotazioneRepo;
     private final ServizioGiornoRepository servizioGiornoRepo;
+    private final UtenteService utenteService; // Aggiungi questa dipendenza
 
     public PrenotazioneService(UtenteRepository utenteRepo, VeicoloRepository veicoloRepo,
-                               PrenotazioneRepository prenotazioneRepo, ServizioGiornoRepository servizioGiornoRepo) {
+                               PrenotazioneRepository prenotazioneRepo, ServizioGiornoRepository servizioGiornoRepo,
+                               UtenteService utenteService) {
         this.utenteRepo = utenteRepo;
         this.veicoloRepo = veicoloRepo;
         this.prenotazioneRepo = prenotazioneRepo;
         this.servizioGiornoRepo = servizioGiornoRepo;
+        this.utenteService = utenteService;
     }
 
     /**
@@ -77,6 +80,11 @@ public class PrenotazioneService {
     @Transactional
     @PreAuthorize("hasAnyRole('UTENTE','ADMIN')")
     public Prenotazione creaPrenotazione(String userId, Long veicoloId, LocalDateTime inizio, LocalDateTime fine) {
+        // Verifica che l'utente abbia una carta di credito valida
+        if (!utenteService.hasCartaCreditoValida(userId)) {
+            throw new IllegalStateException("È necessario inserire una carta di credito valida prima di effettuare una prenotazione");
+        }
+
         // Metodo wrapper che gestisce i retry automaticamente
         int maxRetry = 3;
         for (int tentativo = 1; tentativo <= maxRetry; tentativo++) {
@@ -86,15 +94,16 @@ public class PrenotazioneService {
                 if (tentativo == maxRetry) {
                     throw new IllegalStateException("Concorrenza troppo alta, riprova più tardi");
                 }
-                // Pausa progressiva tra i tentativi
+                // Attendi un po' prima del retry
                 try {
-                    Thread.sleep(50L * tentativo);
-                } catch (InterruptedException ignored) {
+                    Thread.sleep(100 * tentativo);
+                } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Operazione interrotta");
                 }
             }
         }
-        throw new IllegalStateException("Errore imprevisto nella creazione prenotazione");
+        throw new IllegalStateException("Errore imprevisto nella creazione della prenotazione");
     }
     
     /**

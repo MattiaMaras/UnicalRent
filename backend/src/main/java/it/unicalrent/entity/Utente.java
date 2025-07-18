@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,18 @@ public class Utente {
     @NotNull
     private Ruolo ruolo;
 
+    // Campi per la carta di credito
+    @Pattern(regexp = "^[0-9]{16}$", message = "Il numero della carta deve contenere esattamente 16 cifre")
+    private String numeroCarta;
+
+    @Pattern(regexp = "^(0[1-9]|1[0-2])/[0-9]{2}$", message = "La scadenza deve essere nel formato MM/YY")
+    private String scadenzaCarta;
+
+    @Pattern(regexp = "^[0-9]{3}$", message = "Il CVV deve contenere esattamente 3 cifre")
+    private String cvvCarta;
+
+    @NotBlank
+    private String intestatarioCarta;
 
     @OneToMany(mappedBy = "utente", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
@@ -101,5 +114,46 @@ public class Utente {
     public void rimuoviPrenotazione(Prenotazione p) {
         prenotazioni.remove(p);
         p.setUtente(null);
+    }
+
+    // Getter e Setter per i campi della carta di credito
+    public String getNumeroCarta() {
+        return numeroCarta;
+    }
+
+    public void setNumeroCarta(String numeroCarta) {
+        this.numeroCarta = numeroCarta;
+    }
+
+    public String getScadenzaCarta() {
+        return scadenzaCarta;
+    }
+
+    public void setScadenzaCarta(String scadenzaCarta) {
+        this.scadenzaCarta = scadenzaCarta;
+    }
+
+    public String getCvvCarta() {
+        return cvvCarta;
+    }
+
+    public void setCvvCarta(String cvvCarta) {
+        this.cvvCarta = cvvCarta;
+    }
+
+    public String getIntestatarioCarta() {
+        return intestatarioCarta;
+    }
+
+    public void setIntestatarioCarta(String intestatarioCarta) {
+        this.intestatarioCarta = intestatarioCarta;
+    }
+
+    // Metodo per verificare se la carta di credito è completa
+    public boolean hasCartaCredito() {
+        return numeroCarta != null && !numeroCarta.trim().isEmpty() &&
+               scadenzaCarta != null && !scadenzaCarta.trim().isEmpty() &&
+               cvvCarta != null && !cvvCarta.trim().isEmpty() &&
+               intestatarioCarta != null && !intestatarioCarta.trim().isEmpty();
     }
 }
