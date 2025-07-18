@@ -7,7 +7,7 @@ import { Car, Calendar, TrendingUp, Users, Clock, DollarSign } from 'lucide-reac
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth(); // Aggiunto hasRole
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = hasRole('ADMIN'); // Cambiato da user?.role === 'ADMIN'
   const userBookings = bookings.filter(b => b.utente?.id === user?.id);
   const activeBookings = bookings.filter(b => b.stato === 'ATTIVA');
   const completedBookings = bookings.filter(b => b.stato === 'COMPLETATA');
@@ -144,7 +144,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
             <div className="p-6 border-b border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900">
-                {isAdmin ? 'Prenotazioni Recenti' : 'Le Tue Prenotazioni'}
+                {isAdmin ? 'Prenotazioni Recenti' : 'LeTue Prenotazioni'}
               </h3>
             </div>
             <div className="p-0">

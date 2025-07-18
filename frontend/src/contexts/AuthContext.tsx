@@ -27,45 +27,56 @@ const getKeycloakInstance = () => {
   return keycloakInstance;
 };
 
-const mapKeycloakRoleToAppRole = (keycloak: Keycloak): 'ADMIN' | 'UTENTE' => {
-  const realmRoles = keycloak.realmAccess?.roles || [];
-  const clientRoles = keycloak.resourceAccess?.[keycloakConfig.clientId]?.roles || [];
-  const parsedRoles = (keycloak.tokenParsed?.roles as string[]) || [];
-  const allRoles = [...realmRoles, ...clientRoles, ...parsedRoles];
-
-  console.log('Ruoli Keycloak trovati:', allRoles);
-
-  const adminRoles = ['admin', 'administrator', 'ADMIN', 'ADMINISTRATOR', 'unical-admin', 'realm-admin'];
-  const adminRolesLower = adminRoles.map(r => r.toLowerCase());
-
-  const hasAdminRole = allRoles.some(role =>
-      adminRolesLower.includes(role.toLowerCase())
-  );
-
-  console.log('Has admin role:', hasAdminRole);
-
-  return hasAdminRole ? 'ADMIN' : 'UTENTE';
+const getRolesFromToken = (token: string): string[] => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.realm_access?.roles || [];
+  } catch (error) {
+    console.error('Errore parsing JWT:', error);
+    return [];
+  }
 };
 
-const createUserFromKeycloak = (keycloakInstance: Keycloak): User => {
-  const profile = keycloakInstance.tokenParsed;
+// Funzione per sincronizzare l'utente con il backend
+const syncUserWithBackend = async (token: string): Promise<User | null> => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/utenti/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
-  console.log('Profile completo:', profile);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-  return {
-    id: profile?.sub || '',
-    keycloakId: profile?.sub || '',
-    username: profile?.preferred_username || profile?.email || '',
-    email: profile?.email || '',
-    nome: profile?.given_name || profile?.firstName || profile?.name?.split(' ')[0] || '',
-    cognome: profile?.family_name || profile?.lastName || profile?.name?.split(' ').slice(1).join(' ') || '',
-    firstName: profile?.given_name || profile?.firstName || '',
-    lastName: profile?.family_name || profile?.lastName || '',
-    role: mapKeycloakRoleToAppRole(keycloakInstance),
-    telefono: profile?.phone_number || profile?.phone || '',
-    attivo: true,
-    dataRegistrazione: new Date().toISOString(),
-  };
+    const backendUser = await response.json();
+    
+    // Estrai i ruoli dal token per il frontend
+    const rolesFromToken = getRolesFromToken(token);
+    
+    // Crea l'oggetto User combinando dati backend e ruoli dal token
+    const user: User = {
+      id: backendUser.id,
+      username: backendUser.email || backendUser.id,
+      email: backendUser.email,
+      roles: rolesFromToken, // Array di ruoli dal token JWT
+      nome: backendUser.nome,
+      cognome: backendUser.cognome,
+      telefono: backendUser.telefono,
+      attivo: backendUser.attivo ?? true,
+      dataRegistrazione: backendUser.dataRegistrazione || new Date().toISOString(),
+      keycloakId: backendUser.id
+    };
+
+    console.log('Utente sincronizzato con backend:', user);
+    return user;
+  } catch (error) {
+    console.error('Errore nella sincronizzazione con il backend:', error);
+    return null;
+  }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -74,6 +85,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const initRef = useRef(false);
+
+  const hasRole = useCallback(
+    (role: string): boolean => {
+      return user?.roles.includes(role) ?? false;
+    },
+    [user]
+  );
 
   useEffect(() => {
     if (initRef.current) return;
@@ -92,29 +110,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         console.log('Keycloak authenticated:', authenticated);
 
-        if (authenticated) {
-          console.log('Token parsed:', keycloak.tokenParsed);
-          console.log('Realm roles:', keycloak.realmAccess?.roles);
-          console.log('Client roles:', keycloak.resourceAccess);
-          console.log('All resource access:', keycloak.resourceAccess);
-
+        if (authenticated && keycloak.token) {
           setIsAuthenticated(true);
-          setToken(keycloak.token || null);
+          setToken(keycloak.token);
+          localStorage.setItem('token', keycloak.token);
 
-          if (keycloak.token) {
-            localStorage.setItem('token', keycloak.token);
+          // Sincronizza l'utente con il backend
+          const syncedUser = await syncUserWithBackend(keycloak.token);
+          if (syncedUser) {
+            setUser(syncedUser);
           }
 
-          const userData = createUserFromKeycloak(keycloak);
-          console.log('User data created:', userData);
-          setUser(userData);
-
           keycloak.onTokenExpired = () => {
-            keycloak.updateToken(30).then((refreshed) => {
+            keycloak.updateToken(30).then(async (refreshed) => {
               if (refreshed && keycloak.token) {
                 setToken(keycloak.token);
                 localStorage.setItem('token', keycloak.token);
-                setUser(createUserFromKeycloak(keycloak));
+                
+                // Risincronizza con il backend dopo il refresh del token
+                const syncedUser = await syncUserWithBackend(keycloak.token);
+                if (syncedUser) {
+                  setUser(syncedUser);
+                }
               }
             }).catch(() => {
               console.error('Failed to refresh token');
@@ -160,16 +177,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-      <AuthContext.Provider value={{
-        user,
-        token,
-        login,
-        logout,
-        isLoading,
-        isAuthenticated
-      }}>
-        {children}
-      </AuthContext.Provider>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      login,
+      logout,
+      isLoading,
+      isAuthenticated,
+      hasRole
+    }}>
+      {children}
+    </AuthContext.Provider>
   );
 };
 

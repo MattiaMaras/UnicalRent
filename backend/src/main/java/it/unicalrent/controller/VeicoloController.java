@@ -1,27 +1,26 @@
 package it.unicalrent.controller;
 
+import it.unicalrent.dto.VeicoloDTO;
 import it.unicalrent.entity.Veicolo;
+import it.unicalrent.mapper.VeicoloMapper;
 import it.unicalrent.service.VeicoloService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Controller REST per la gestione dei veicoli.
- * Fornisce operazioni CRUD protette con accessi differenziati per ruolo.
- */
 @RestController
 @RequestMapping("/api/veicoli")
 public class VeicoloController {
 
     private final VeicoloService veicoloService;
+    private final VeicoloMapper veicoloMapper;
 
-    public VeicoloController(VeicoloService veicoloService) {
+    public VeicoloController(VeicoloService veicoloService, VeicoloMapper veicoloMapper) {
         this.veicoloService = veicoloService;
+        this.veicoloMapper = veicoloMapper;
     }
 
     /**
@@ -29,8 +28,9 @@ public class VeicoloController {
      * Accesso libero per consultazione.
      */
     @GetMapping
-    public ResponseEntity<List<Veicolo>> listaVeicoliAttivi() {
-        return ResponseEntity.ok(veicoloService.listaVeicoliAttivi());
+    public ResponseEntity<List<VeicoloDTO>> listaVeicoliAttivi() {
+        List<Veicolo> veicoli = veicoloService.listaVeicoliAttivi();
+        return ResponseEntity.ok(veicoloMapper.toDTOList(veicoli));
     }
 
     /**
@@ -38,8 +38,9 @@ public class VeicoloController {
      * Accesso libero.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Veicolo> getVeicolo(@PathVariable Long id) {
-        return ResponseEntity.ok(veicoloService.getVeicoloById(id));
+    public ResponseEntity<VeicoloDTO> getVeicolo(@PathVariable Long id) {
+        Veicolo veicolo = veicoloService.getVeicoloById(id);
+        return ResponseEntity.ok(veicoloMapper.toDTO(veicolo));
     }
 
     /**
@@ -47,23 +48,18 @@ public class VeicoloController {
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Veicolo> aggiungiVeicolo(@Valid @RequestBody Veicolo veicolo) {
+    public ResponseEntity<VeicoloDTO> aggiungiVeicolo(@Valid @RequestBody Veicolo veicolo) {
         Veicolo creato = veicoloService.creaVeicolo(veicolo);
-        return ResponseEntity.ok(creato);
+        return ResponseEntity.ok(veicoloMapper.toDTO(creato));
     }
 
-    /**
-     * Modifica i dati di un veicolo esistente (solo per amministratori).
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Veicolo> aggiornaVeicolo(@PathVariable Long id, @Valid @RequestBody Veicolo aggiornato) {
-        return ResponseEntity.ok(veicoloService.aggiornaVeicolo(id, aggiornato));
+    public ResponseEntity<VeicoloDTO> aggiornaVeicolo(@PathVariable Long id, @Valid @RequestBody Veicolo aggiornato) {
+        Veicolo veicolo = veicoloService.aggiornaVeicolo(id, aggiornato);
+        return ResponseEntity.ok(veicoloMapper.toDTO(veicolo));
     }
 
-    /**
-     * Soft delete: disattiva un veicolo invece di eliminarlo fisicamente (solo per amministratori).
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> eliminaVeicolo(@PathVariable Long id) {

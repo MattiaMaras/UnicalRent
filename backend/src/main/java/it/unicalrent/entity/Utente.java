@@ -1,5 +1,6 @@
 package it.unicalrent.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -29,7 +30,9 @@ public class Utente {
     @NotNull
     private Ruolo ruolo;
 
+
     @OneToMany(mappedBy = "utente", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Prenotazione> prenotazioni = new ArrayList<>();
 
     public Utente() {}

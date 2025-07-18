@@ -2,7 +2,7 @@ export interface User {
     id: string;
     username: string;
     email: string;
-    role: 'ADMIN' | 'UTENTE';
+    roles: string[];  // Cambiato da 'role' a 'roles' per supportare più ruoli
     nome?: string;
     cognome?: string;
     telefono?: string;
@@ -49,10 +49,11 @@ export interface Booking {
 export interface AuthContextType {
     user: User | null;
     token: string | null;
-    login: () => Promise<boolean>; // Modificato: non più username/password
+    login: () => Promise<boolean>;
     logout: () => void;
     isLoading: boolean;
-    isAuthenticated: boolean; // Aggiunto
+    isAuthenticated: boolean;
+    hasRole: (role: string) => boolean;  // Aggiunto hasRole
 }
 
 export interface Toast {

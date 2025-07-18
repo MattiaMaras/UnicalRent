@@ -45,7 +45,7 @@ public class Prenotazione {
     private StatoPrenotazione stato;
 
     /** Importo totale calcolato in fase di creazione */
-    @Column(nullable = false)
+    @Column(name = "costo_totale", nullable = false)
     private Double costoTotale;
 
     /** Eventuale nota dell'utente */

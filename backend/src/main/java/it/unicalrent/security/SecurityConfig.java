@@ -20,21 +20,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Configurazione di sicurezza per le API di Unical Rent:
- * - CSRF disabilitato (stateless, JWT-based)
- * - Endpoint pubblici per home, risorse statiche, registrazione e ricerca veicoli
- * - Protezione con ROLE_ADMIN su operazioni sensibili
- * - Sessione HTTP in modalità stateless
- * - Conversione custom del JWT di Keycloak in GrantedAuthority
+ * Configurazione di sicurezza per le API di Unical Rent.
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    /**
-     * Definisce la catena di filtri di Spring Security.
-     */
+    private static final String CLIENT_ID = "unicalrent-client";
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -56,10 +50,12 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/utenti/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/veicoli/**").permitAll()
                         .requestMatchers("/api/veicoli/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/prenotazioni").hasRole("ADMIN")
                         .requestMatchers("/api/prenotazioni/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/prenotazioni/mybookings").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
@@ -68,6 +64,9 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Converte i ruoli presenti nel token JWT in GrantedAuthority leggibili da Spring.
+     */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter scopesConverter = new JwtGrantedAuthoritiesConverter();
@@ -77,22 +76,30 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Collection<GrantedAuthority> authorities = new ArrayList<>();
 
-            // 1) scope
+            // 1) Aggiunge gli scope come authority
             authorities.addAll(scopesConverter.convert(jwt));
 
-            // 2) realm_access.roles → ROLE_...
+            // 2) Ruoli da realm_access.roles
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
             if (realmAccess != null && realmAccess.containsKey("roles")) {
                 @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) realmAccess.get("roles");
-                roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+                List<String> realmRoles = (List<String>) realmAccess.get("roles");
+                for (String role : realmRoles) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                }
             }
 
-            // 3) top-level roles → ROLE_...
-            @SuppressWarnings("unchecked")
-            List<String> topRoles = (List<String>) jwt.getClaim("roles");
-            if (topRoles != null) {
-                topRoles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+            // 3) Ruoli da resource_access.CLIENT_ID.roles
+            Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
+            if (resourceAccess != null && resourceAccess.containsKey(CLIENT_ID)) {
+                Map<String, Object> client = (Map<String, Object>) resourceAccess.get(CLIENT_ID);
+                if (client.containsKey("roles")) {
+                    @SuppressWarnings("unchecked")
+                    List<String> clientRoles = (List<String>) client.get("roles");
+                    for (String role : clientRoles) {
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                    }
+                }
             }
 
             return authorities;

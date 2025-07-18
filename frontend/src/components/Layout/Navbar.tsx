@@ -7,7 +7,7 @@ import {useAuth} from "../../contexts/AuthContext.tsx";
 import logoUnical from '../../../public/images/logoUnical.png';
 
 const Navbar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -43,7 +43,18 @@ const Navbar: React.FC = () => {
 
   const getNavigationLinks = () => {
     if (!user) return publicLinks;
-    return user.role === 'ADMIN' ? adminLinks : userLinks;
+    return hasRole('ADMIN') ? adminLinks : userLinks;
+  };
+
+  const getUserRoleDisplay = () => {
+    if (!user) return '';
+    return hasRole('ADMIN') ? 'ADMIN' : 'UTENTE';
+  };
+
+  const getRoleStyles = () => {
+    return hasRole('ADMIN') 
+      ? 'bg-red-100 text-red-800' 
+      : 'bg-green-100 text-green-800';
   };
 
   return (
@@ -83,12 +94,8 @@ const Navbar: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700">
                   Ciao, <span className="font-medium">{user.nome || user.username}</span>
-                  <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                    user.role === 'ADMIN' 
-                      ? 'bg-red-100 text-red-800' 
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {user.role}
+                  <span className={`ml-2 px-2 py-1 text-xs rounded-full ${getRoleStyles()}`}>
+                    {getUserRoleDisplay()}
                   </span>
                 </span>
                 <button
@@ -147,12 +154,8 @@ const Navbar: React.FC = () => {
                   <p className="text-sm text-gray-700">
                     Ciao, <span className="font-medium">{user.nome || user.username}</span>
                   </p>
-                  <span className={`inline-block mt-1 px-2 py-1 text-xs rounded-full ${
-                    user.role === 'ADMIN' 
-                      ? 'bg-red-100 text-red-800' 
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {user.role}
+                  <span className={`inline-block mt-1 px-2 py-1 text-xs rounded-full ${getRoleStyles()}`}>
+                    {getUserRoleDisplay()}
                   </span>
                 </div>
                 <button

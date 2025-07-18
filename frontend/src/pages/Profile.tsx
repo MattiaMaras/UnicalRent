@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { User, Mail, Phone, Calendar, Save, ExternalLink, Shield } from 'lucide-react';
 
 const Profile: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -42,6 +42,16 @@ const Profile: React.FC = () => {
     // Reindirizza alla gestione account Keycloak
     const keycloakAccountUrl = `${import.meta.env.VITE_KEYCLOAK_URL}/realms/${import.meta.env.VITE_KEYCLOAK_REALM}/account`;
     window.open(keycloakAccountUrl, '_blank');
+  };
+
+  const getUserRoleDisplay = () => {
+    return hasRole('ADMIN') ? 'Amministratore' : 'Utente';
+  };
+
+  const getRoleStyles = () => {
+    return hasRole('ADMIN')
+      ? 'bg-red-100 text-red-800'
+      : 'bg-green-100 text-green-800';
   };
 
   if (!user) {
@@ -83,13 +93,9 @@ const Profile: React.FC = () => {
                     {user.nome && user.cognome ? `${user.nome} ${user.cognome}` : user.username}
                   </h3>
                   <p className="text-gray-600">{user.email}</p>
-                  <span className={`inline-block mt-2 px-3 py-1 text-sm rounded-full ${
-                      user.role === 'ADMIN'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-green-100 text-green-800'
-                  }`}>
-                  {user.role === 'ADMIN' ? 'Amministratore' : 'Utente'}
-                </span>
+                  <span className={`inline-block mt-2 px-3 py-1 text-sm rounded-full ${getRoleStyles()}`}>
+                    {getUserRoleDisplay()}
+                  </span>
                 </div>
 
                 <div className="mt-6 space-y-3">

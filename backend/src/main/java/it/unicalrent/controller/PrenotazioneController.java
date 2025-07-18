@@ -12,17 +12,20 @@ import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Controller REST per la gestione delle prenotazioni.
- */
+// Aggiungi l'import
+import it.unicalrent.dto.PrenotazioneDTO;
+import it.unicalrent.mapper.PrenotazioneMapper;
+
 @RestController
 @RequestMapping("/api/prenotazioni")
 public class PrenotazioneController {
 
     private final PrenotazioneService prenotazioneService;
+    private final PrenotazioneMapper prenotazioneMapper;
 
-    public PrenotazioneController(PrenotazioneService prenotazioneService) {
+    public PrenotazioneController(PrenotazioneService prenotazioneService, PrenotazioneMapper prenotazioneMapper) {
         this.prenotazioneService = prenotazioneService;
+        this.prenotazioneMapper = prenotazioneMapper;
     }
 
     /**
@@ -94,8 +97,9 @@ public class PrenotazioneController {
      */
     @GetMapping("/mybookings")
     @PreAuthorize("hasAnyRole('UTENTE', 'ADMIN')")
-    public List<Prenotazione> getPrenotazioniUtente(Principal principal) {
-        return prenotazioneService.listaPrenotazioniPerUtente(principal.getName());
+    public List<PrenotazioneDTO> getPrenotazioniUtente(Principal principal) {
+        List<Prenotazione> prenotazioni = prenotazioneService.listaPrenotazioniPerUtente(principal.getName());
+        return prenotazioneMapper.toDTOList(prenotazioni);
     }
 
     /**
