@@ -24,11 +24,12 @@ public interface PrenotazioneRepository extends JpaRepository<Prenotazione, Long
     List<Prenotazione> findByVeicoloId(Long veicoloId);
 
     /**
-     * Controlla se esiste una prenotazione sullo stesso veicolo che
+     * Controlla se esiste una prenotazione ATTIVA sullo stesso veicolo che
      * inizi prima di dataFine e finisca dopo dataInizio (overlap).
      */
-    boolean existsByVeicoloAndDataInizioLessThanAndDataFineGreaterThan(
+    boolean existsByVeicoloAndStatoAndDataInizioLessThanAndDataFineGreaterThan(
             Veicolo veicolo,
+            StatoPrenotazione stato,
             LocalDateTime dataFine,
             LocalDateTime dataInizio
     );
@@ -66,5 +67,10 @@ public interface PrenotazioneRepository extends JpaRepository<Prenotazione, Long
         @Param("inizio") LocalDateTime inizio,
         @Param("fine") LocalDateTime fine
     );
+
+    /**
+     * Trova tutte le prenotazioni con un determinato stato e data fine precedente a quella specificata.
+     */
+    List<Prenotazione> findByStatoAndDataFineBefore(StatoPrenotazione stato, LocalDateTime dataFine);
 
 }

@@ -129,8 +129,9 @@ public class PrenotazioneService {
                 LocalDateTime inizioGiorno = giorno.atStartOfDay();
                 LocalDateTime fineGiorno = giorno.plusDays(1).atStartOfDay();
                 
-                boolean sovrapposta = prenotazioneRepo.existsByVeicoloAndDataInizioLessThanAndDataFineGreaterThan(
-                    veicolo, 
+                boolean sovrapposta = prenotazioneRepo.existsByVeicoloAndStatoAndDataInizioLessThanAndDataFineGreaterThan(
+                    veicolo,
+                    StatoPrenotazione.ATTIVA, // Aggiungi questo parametro
                     Math.max(inizio.toEpochSecond(java.time.ZoneOffset.UTC), inizioGiorno.toEpochSecond(java.time.ZoneOffset.UTC)) == inizio.toEpochSecond(java.time.ZoneOffset.UTC) ? fine : fineGiorno,
                     Math.min(fine.toEpochSecond(java.time.ZoneOffset.UTC), fineGiorno.toEpochSecond(java.time.ZoneOffset.UTC)) == fine.toEpochSecond(java.time.ZoneOffset.UTC) ? inizio : inizioGiorno
                 );

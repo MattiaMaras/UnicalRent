@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, Save, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Calendar, Save } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { Vehicle } from '../types';
 import { getVeicoli, getDisponibilitaVeicolo, DisponibilitaVeicolo } from '../services/VeicoliService';
@@ -92,8 +92,7 @@ const NewBooking: React.FC = () => {
       setErroreValidazione('La data di fine non può essere precedente a oggi');
       return;
     }
-    
-    // Correggi il confronto delle date
+  
     if (formData.dataInizio) {
       const dataInizio = new Date(formData.dataInizio);
       dataInizio.setHours(0, 0, 0, 0);
@@ -188,6 +187,23 @@ const NewBooking: React.FC = () => {
 
   // Carica disponibilità quando cambia il veicolo
   useEffect(() => {
+    // Listener per refresh disponibilità dopo annullamento
+    const handleAvailabilityRefresh = () => {
+      if (formData.veicoloId) {
+        setLoadingDisponibilita(true);
+        getDisponibilitaVeicolo(formData.veicoloId)
+          .then(setDisponibilita)
+          .catch(err => {
+            console.error('Errore caricamento disponibilità:', err);
+            setDisponibilita(null);
+          })
+          .finally(() => setLoadingDisponibilita(false));
+      }
+    };
+
+    window.addEventListener('vehicle-availability-refresh', handleAvailabilityRefresh);
+    
+    // Carica disponibilità iniziale
     if (formData.veicoloId) {
       setLoadingDisponibilita(true);
       getDisponibilitaVeicolo(formData.veicoloId)
@@ -200,6 +216,10 @@ const NewBooking: React.FC = () => {
     } else {
       setDisponibilita(null);
     }
+    
+    return () => {
+      window.removeEventListener('vehicle-availability-refresh', handleAvailabilityRefresh);
+    };
   }, [formData.veicoloId]);
 
   // Funzione per ottenere le date non disponibili nel periodo selezionato
@@ -469,7 +489,7 @@ const NewBooking: React.FC = () => {
                                 </div>
                               </div>
                             ) : null;
-                          })()}
+                          })()} 
                         </div>
                       ) : null}
 

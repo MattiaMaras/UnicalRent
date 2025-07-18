@@ -88,9 +88,9 @@ const Dashboard: React.FC = () => {
 
   const isAdmin = hasRole('ADMIN');
   
-  // FIX: Usa username invece di id per il matching
+  // FIX: Correggi il filtro per le prenotazioni utente
   const userBookings = bookings.filter(b => 
-    b.utente?.username === user?.id || 
+    b.utente?.id === user?.id || 
     b.utente?.email === user?.email
   );
 
@@ -142,7 +142,7 @@ const Dashboard: React.FC = () => {
       stato: booking.stato,
       utente: booking.utente, // Oggetto completo
       utenteId: booking.utente?.id,
-      utenteKeycloakId: booking.utente?.keycloakId,
+      // utenteKeycloakId: booking.utente?.keycloakId,
       utenteName: booking.utente?.nome,
       utenteEmail: booking.utente?.email,
       veicolo: booking.veicolo?.marca + ' ' + booking.veicolo?.modello,
@@ -227,7 +227,7 @@ const Dashboard: React.FC = () => {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {isAdmin ? 'Dashboard Amministratore' : `Ciao, ${user?.nome || user?.username}!`}
+            {isAdmin ? 'Dashboard Amministratore' : `Ciao, ${user?.nome || user?.email}!`}
           </h1>
           <p className="text-gray-600 mb-6">
             {isAdmin ? 'Panoramica generale del servizio Unical Rent' : 'Benvenuto nella tua dashboard personale'}

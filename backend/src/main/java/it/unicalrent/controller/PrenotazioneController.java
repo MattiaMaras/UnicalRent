@@ -3,6 +3,7 @@ package it.unicalrent.controller;
 import it.unicalrent.entity.Prenotazione;
 import it.unicalrent.exception.BookingConflictException;
 import it.unicalrent.service.PrenotazioneService;
+import it.unicalrent.service.PrenotazioneSchedulerService;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,10 +25,12 @@ public class PrenotazioneController {
 
     private final PrenotazioneService prenotazioneService;
     private final PrenotazioneMapper prenotazioneMapper;
+    private final PrenotazioneSchedulerService prenotazioneSchedulerService;
 
-    public PrenotazioneController(PrenotazioneService prenotazioneService, PrenotazioneMapper prenotazioneMapper) {
+    public PrenotazioneController(PrenotazioneService prenotazioneService, PrenotazioneMapper prenotazioneMapper, PrenotazioneSchedulerService prenotazioneSchedulerService) {
         this.prenotazioneService = prenotazioneService;
         this.prenotazioneMapper = prenotazioneMapper;
+        this.prenotazioneSchedulerService = prenotazioneSchedulerService;
     }
 
     /**
@@ -180,5 +183,12 @@ public class PrenotazioneController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Errore durante la cancellazione: " + e.getMessage());
         }
+    }
+    
+    @PostMapping("/aggiorna-scadute")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> aggiornaPrenotazioniScadute() {
+        int aggiornate = prenotazioneSchedulerService.aggiornaPrenotazioniScaduteManuale();
+        return ResponseEntity.ok("Aggiornate " + aggiornate + " prenotazioni da ATTIVA a COMPLETATA");
     }
 }

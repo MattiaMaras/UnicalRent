@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Car, CreditCard, AlertTriangle, X, CheckCircle } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
-import { getPrenotazioni, cancellaPrenotazione } from '../services/PrenotazioniService';
+import { getPrenotazioni, getTuttePrenotazioni, cancellaPrenotazione } from '../services/PrenotazioniService';
+import { useAuth } from '../contexts/AuthContext';
 import { Booking } from '../types';
 
 const BookingDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { showToast } = useToast();
+    const { hasRole } = useAuth();
     const [booking, setBooking] = useState<Booking | null>(null);
     const [loading, setLoading] = useState(true);
     const [cancelling, setCancelling] = useState(false);
@@ -16,7 +18,10 @@ const BookingDetails: React.FC = () => {
     useEffect(() => {
         const loadBooking = async () => {
             try {
-                const bookings = await getPrenotazioni();
+                // FIX: Usa getTuttePrenotazioni per admin, getPrenotazioni per utenti normali
+                const isAdmin = hasRole('ADMIN');
+                const bookings = isAdmin ? await getTuttePrenotazioni() : await getPrenotazioni();
+                
                 // Fix type comparison issue by converting both to string
                 const foundBooking = bookings.find(b => b.id.toString() === id);
                 if (foundBooking) {
@@ -37,7 +42,7 @@ const BookingDetails: React.FC = () => {
         if (id) {
             loadBooking();
         }
-    }, [id, navigate, showToast]);
+    }, [id, navigate, showToast, hasRole]);
 
     const formatDateTime = (date: string) =>
         new Date(date).toLocaleString('it-IT', {
@@ -106,15 +111,15 @@ const BookingDetails: React.FC = () => {
         
         setCancelling(true);
         try {
-            await cancellaPrenotazione(booking.id);
-            setBooking(prev => prev ? { ...prev, stato: 'ANNULLATA' } : null);
-            showToast('success', penalty ? 
-                `Prenotazione annullata. Multa applicata: €${calculatePenalty().toFixed(2)}` : 
-                'Prenotazione annullata con successo'
-            );
+            await cancellaPrenotazione(booking.id.toString());
+            showToast('success', 'Prenotazione annullata con successo');
+            
+            window.dispatchEvent(new CustomEvent('vehicle-availability-refresh'));
+            
+            navigate('/prenotazioni');
         } catch (error) {
-            console.error('Errore annullamento prenotazione:', error);
-            showToast('error', 'Errore durante l\'annullamento');
+            console.error('Errore nell\'annullamento:', error);
+            showToast('error', 'Errore nell\'annullamento della prenotazione');
         } finally {
             setCancelling(false);
         }
@@ -134,7 +139,7 @@ const BookingDetails: React.FC = () => {
         return `${diffMinutes}m`;
     };
     
-    // Aggiungi questa funzione dopo getDuration() (intorno alla riga 138)
+    // Aggiungi questa funzione dopo getDuraion() (intorno alla riga 138)
     const getCostoOrarioEffettivo = () => {
         if (!booking) return 0;
         const start = new Date(booking.dataInizio);
