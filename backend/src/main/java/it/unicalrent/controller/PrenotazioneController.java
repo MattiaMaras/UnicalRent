@@ -127,8 +127,9 @@ public class PrenotazioneController {
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<Prenotazione> getTuttePrenotazioni() {
-        return prenotazioneService.listaTuttePrenotazioni();
+    public List<PrenotazioneDTO> getTuttePrenotazioni() {
+        List<Prenotazione> prenotazioni = prenotazioneService.listaTuttePrenotazioni();
+        return prenotazioneMapper.toDTOList(prenotazioni);
     }
 
     /**

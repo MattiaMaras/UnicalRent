@@ -1,29 +1,64 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getVeicoli } from '../services/VeicoliService';
-import { getPrenotazioni } from '../services/PrenotazioniService';
+import { getPrenotazioni, getTuttePrenotazioni } from '../services/PrenotazioniService';
 import { Vehicle, Booking } from '../types';
 import { Car, Calendar, TrendingUp, Users, Clock, DollarSign } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { user, hasRole } = useAuth(); // Aggiunto hasRole
+  const { user, hasRole } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const refreshData = useCallback(async () => {
+    try {
+      const isAdmin = hasRole('ADMIN');
+      const [vehiclesData, bookingsData] = await Promise.all([
+        getVeicoli(),
+        isAdmin ? getTuttePrenotazioni() : getPrenotazioni()
+      ]);
+
+      setVehicles(vehiclesData);
+      setBookings(bookingsData);
+    } catch (error: unknown) {
+      console.error('Errore aggiornamento dati:', error);
+      // Gestisci l'errore mostrando un messaggio all'utente
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status: number } };
+        if (axiosError.response?.status === 403) {
+          console.error('Accesso negato - verifica i permessi');
+        }
+      }
+    }
+  }, [hasRole]);
+
   useEffect(() => {
     const loadData = async () => {
       try {
+        const isAdmin = hasRole('ADMIN');
         const [vehiclesData, bookingsData] = await Promise.all([
           getVeicoli(),
-          getPrenotazioni()
+          isAdmin ? getTuttePrenotazioni() : getPrenotazioni()
         ]);
 
         setVehicles(vehiclesData);
         setBookings(bookingsData);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Errore caricamento dati:', error);
+        // Per gli admin, se fallisce getTuttePrenotazioni, prova con getPrenotazioni
+        if (hasRole('ADMIN') && error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response?: { status: number } };
+          if (axiosError.response?.status === 500) {
+            try {
+              const bookingsData = await getPrenotazioni();
+              setBookings(bookingsData);
+            } catch (fallbackError: unknown) {
+              console.error('Errore anche con fallback:', fallbackError);
+            }
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -32,7 +67,16 @@ const Dashboard: React.FC = () => {
     if (user) {
       loadData();
     }
-  }, [user]);
+  }, [user, hasRole]);
+
+  useEffect(() => {
+    const handleRefresh = () => refreshData();
+    window.addEventListener('dashboard-refresh', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('dashboard-refresh', handleRefresh);
+    };
+  }, [refreshData]);
 
   if (loading) {
     return (
@@ -42,7 +86,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const isAdmin = hasRole('ADMIN'); // Cambiato da user?.role === 'ADMIN'
+  const isAdmin = hasRole('ADMIN');
   const userBookings = bookings.filter(b => b.utente?.id === user?.id);
   const activeBookings = bookings.filter(b => b.stato === 'ATTIVA');
   const completedBookings = bookings.filter(b => b.stato === 'COMPLETATA');

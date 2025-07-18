@@ -33,18 +33,28 @@ export interface Vehicle {
 
 export interface Booking {
     id: string;
-    userId: string;
-    veicoloId: string;
     dataInizio: string;
     dataFine: string;
     stato: 'ATTIVA' | 'COMPLETATA' | 'ANNULLATA';
     costoTotale: number;
     note?: string;
     dataCreazione: string;
-
-    // Campi popolati per display
-    utente?: User;
-    veicolo?: Vehicle;
+    veicolo?: {
+        id: string;
+        marca: string;
+        modello: string;
+        targa: string;
+        tipo: 'AUTO' | 'SCOOTER';
+        alimentazione: 'BENZINA' | 'DIESEL' | 'ELETTRICO' | 'IBRIDO';
+        posti: number;
+        costoOrario: number;
+    };
+    utente?: {
+        id: string;
+        nome: string;
+        cognome: string;
+        email: string;
+    };
 }
 
 export interface AuthContextType {

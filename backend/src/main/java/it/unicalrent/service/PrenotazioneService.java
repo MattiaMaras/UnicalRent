@@ -266,4 +266,31 @@ public class PrenotazioneService {
             }
         }
     }
+    
+    /**
+     * Elimina definitivamente una prenotazione (solo per ADMIN).
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void eliminaPrenotazione(Long prenId) {
+        Prenotazione prenotazione = prenotazioneRepo.findById(prenId)
+                .orElseThrow(() -> new IllegalArgumentException("Prenotazione non trovata"));
+        
+        // Se la prenotazione è attiva, decrementa i contatori ServizioGiorno
+        if (prenotazione.getStato() == StatoPrenotazione.ATTIVA) {
+            LocalDate giorno = prenotazione.getDataInizio().toLocalDate();
+            while (!giorno.isAfter(prenotazione.getDataFine().toLocalDate())) {
+                Optional<ServizioGiorno> sgOpt = servizioGiornoRepo.findByVeicoloAndData(prenotazione.getVeicolo(), giorno);
+                if (sgOpt.isPresent()) {
+                    ServizioGiorno sg = sgOpt.get();
+                    sg.decrementaPrenotazioni();
+                    servizioGiornoRepo.save(sg);
+                }
+                giorno = giorno.plusDays(1);
+            }
+        }
+        
+        // Elimina definitivamente la prenotazione
+        prenotazioneRepo.delete(prenotazione);
+    }
 }

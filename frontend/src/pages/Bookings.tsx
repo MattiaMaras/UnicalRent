@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getPrenotazioni, cancellaPrenotazione } from '../services/PrenotazioniService';
+import { getPrenotazioni, getTuttePrenotazioni, cancellaPrenotazione } from '../services/PrenotazioniService';
 import { Booking } from '../types';
-import { Calendar, Plus, Clock, Car, X, Eye } from 'lucide-react';
+import { Calendar, Plus, Clock, Car, X, Eye, User } from 'lucide-react';
 
 const Bookings: React.FC = () => {
     const { user } = useAuth();
@@ -13,10 +13,13 @@ const Bookings: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
 
+    const isAdmin = user?.roles?.includes('ADMIN') || user?.roles?.includes('admin');
+
     useEffect(() => {
         const loadBookings = async () => {
             try {
-                const data = await getPrenotazioni();
+                // Usa getTuttePrenotazioni per admin, getPrenotazioni per utenti normali
+                const data = isAdmin ? await getTuttePrenotazioni() : await getPrenotazioni();
                 if (Array.isArray(data)) {
                     setBookings(data);
                 } else {
@@ -33,7 +36,7 @@ const Bookings: React.FC = () => {
         if (user) {
             loadBookings();
         }
-    }, [user, showToast]);
+    }, [user, showToast, isAdmin]);
 
     const handleCancelBooking = async (bookingId: string) => {
         if (!window.confirm('Sei sicuro di voler annullare questa prenotazione?')) return;
@@ -81,18 +84,22 @@ const Bookings: React.FC = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Le Tue Prenotazioni</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">
+                            {isAdmin ? 'Tutte le Prenotazioni' : 'Le Tue Prenotazioni'}
+                        </h1>
                         <p className="text-gray-600 mt-2">
                             {filteredBookings.length} prenotazioni trovate
                         </p>
                     </div>
-                    <Link
-                        to="/prenotazioni/nuova"
-                        className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                        <Plus className="h-5 w-5 mr-2" />
-                        Nuova Prenotazione
-                    </Link>
+                    {!isAdmin && (
+                        <Link
+                            to="/prenotazioni/nuova"
+                            className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                            <Plus className="h-5 w-5 mr-2" />
+                            Nuova Prenotazione
+                        </Link>
+                    )}
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
@@ -124,6 +131,7 @@ const Bookings: React.FC = () => {
                                 booking={booking}
                                 onCancel={handleCancelBooking}
                                 canCancel={canCancelBooking(booking)}
+                                isAdmin={isAdmin}
                             />
                         ))}
                     </div>
@@ -156,7 +164,8 @@ const BookingCard: React.FC<{
     booking: Booking;
     onCancel: (id: string) => void;
     canCancel: boolean;
-}> = ({ booking, onCancel, canCancel }) => {
+    isAdmin?: boolean;
+}> = ({ booking, onCancel, canCancel, isAdmin = false }) => {
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'ATTIVA': return 'bg-green-100 text-green-800';
@@ -184,6 +193,14 @@ const BookingCard: React.FC<{
                                 {booking.veicolo?.marca} {booking.veicolo?.modello}
                             </h3>
                             <p className="text-sm text-gray-600">Targa: {booking.veicolo?.targa}</p>
+                            {isAdmin && booking.utente && (
+                                <div className="flex items-center space-x-1 mt-1">
+                                    <User className="h-4 w-4 text-gray-400" />
+                                    <p className="text-sm text-gray-600">
+                                        {booking.utente.nome} {booking.utente.cognome} ({booking.utente.email})
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center space-x-3">

@@ -68,7 +68,7 @@ const BookingDetails: React.FC = () => {
     };
 
     const canCancelBooking = () => {
-        if (!booking || booking.stato !== 'ATTIVA') return { canCancel: false, reason: 'Prenotazione non attiva' };
+        if (!booking || booking.stato !== 'ATTIVA') return { canCancel: false, reason: 'Prenotazione non attiva', penalty: false };
         
         const startTime = new Date(booking.dataInizio);
         const now = new Date();
@@ -82,7 +82,7 @@ const BookingDetails: React.FC = () => {
             };
         }
         
-        return { canCancel: true, reason: '' };
+        return { canCancel: true, reason: '', penalty: false };
     };
 
     const calculatePenalty = () => {
@@ -94,12 +94,12 @@ const BookingDetails: React.FC = () => {
     const handleCancelBooking = async () => {
         if (!booking) return;
         
-        // Usa direttamente la funzione per ottenere i valori
         const { penalty } = canCancelBooking();
         
         let confirmMessage = 'Sei sicuro di voler annullare questa prenotazione?';
         if (penalty) {
-            confirmMessage += `\n\nATTENZIONE: Verrà applicata una multa di €${calculatePenalty().toFixed(2)} per cancellazione tardiva.`;
+            const penaltyAmount = calculatePenalty();
+            confirmMessage += ` Verrà applicata una penale di €${penaltyAmount.toFixed(2)}.`;
         }
         
         if (!window.confirm(confirmMessage)) return;
@@ -132,6 +132,16 @@ const BookingDetails: React.FC = () => {
             return `${diffHours}h ${diffMinutes > 0 ? diffMinutes + 'm' : ''}`;
         }
         return `${diffMinutes}m`;
+    };
+    
+    // Aggiungi questa funzione dopo getDuration() (intorno alla riga 138)
+    const getCostoOrarioEffettivo = () => {
+        if (!booking) return 0;
+        const start = new Date(booking.dataInizio);
+        const end = new Date(booking.dataFine);
+        const diffMs = end.getTime() - start.getTime();
+        const ore = diffMs / (1000 * 60 * 60);
+        return booking.costoTotale / ore;
     };
 
     if (loading) {
@@ -288,8 +298,8 @@ const BookingDetails: React.FC = () => {
                                 
                                 <div className="space-y-3">
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Costo orario</span>
-                                        <span>€{booking.veicolo?.costoOrario}/h</span>
+                                        <span className="text-gray-600">Costo orario (al momento della prenotazione)</span>
+                                        <span>€{getCostoOrarioEffettivo().toFixed(2)}/h</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">Durata</span>

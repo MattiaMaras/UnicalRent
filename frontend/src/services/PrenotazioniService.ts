@@ -46,11 +46,15 @@ export const creaPrenotazione = async (
 ): Promise<Booking> => {
     const response = await axios.post<Booking>('/prenotazioni', null, {
         params: {
-            veicoloId: Number(veicoloId), // Converti a numero
+            veicoloId: Number(veicoloId),
             inizio: dataInizio,
             fine: dataFine
         }
     });
+    
+    // Emetti evento per aggiornare la dashboard
+    window.dispatchEvent(new CustomEvent('dashboard-refresh'));
+    
     return response.data;
 };
 
@@ -59,4 +63,7 @@ export const creaPrenotazione = async (
  */
 export async function cancellaPrenotazione(id: string): Promise<void> {
     await axios.put(`/prenotazioni/${id}/cancella`);
+    
+    // Emetti evento per aggiornare la dashboard
+    window.dispatchEvent(new CustomEvent('dashboard-refresh'));
 }

@@ -57,8 +57,8 @@ const NewBooking: React.FC = () => {
     setErroreValidazione('');
     setFormData(prev => ({ ...prev, dataInizio: value }));
     
-    // Se la data di fine è precedente o uguale alla nuova data di inizio, resettala
-    if (formData.dataFine && value && new Date(value) >= new Date(formData.dataFine)) {
+    // Se la data di fine è precedente alla nuova data di inizio, resettala
+    if (formData.dataFine && value && new Date(value) > new Date(formData.dataFine)) {
       setFormData(prev => ({ ...prev, dataFine: '' }));
     }
   };
@@ -93,9 +93,15 @@ const NewBooking: React.FC = () => {
       return;
     }
     
-    if (formData.dataInizio && selectedDate <= new Date(formData.dataInizio)) {
-      setErroreValidazione('La data di fine deve essere successiva a quella di inizio');
-      return;
+    // Correggi il confronto delle date
+    if (formData.dataInizio) {
+      const dataInizio = new Date(formData.dataInizio);
+      dataInizio.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < dataInizio) {
+        setErroreValidazione('La data di fine non può essere precedente a quella di inizio');
+        return;
+      }
     }
     
     setErroreValidazione('');
@@ -243,7 +249,7 @@ const NewBooking: React.FC = () => {
     const inizio = new Date(inizioStr);
     const fine = new Date(fineStr);
 
-    if (fine <= inizio) {
+    if (fine < inizio) {
       showToast('error', 'La data di fine deve essere successiva a quella di inizio');
       return;
     }
