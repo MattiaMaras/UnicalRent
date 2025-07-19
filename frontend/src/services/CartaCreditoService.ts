@@ -1,31 +1,54 @@
-import axios from 'axios';
+import axios from '../api/axios'; // Usa l'istanza configurata
 import { CartaCredito } from '../types';
 
-// Configura l'interceptor per includere il token di autenticazione
-axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
+export interface CartaCreditoCompleta extends CartaCredito {
+  id?: number;
+  tipoCarta?: string;
+  principale?: boolean;
+  mascherata?: boolean;
+  dataCreazione?: string;
+  scaduta?: boolean;
+}
 
 export const aggiornaCartaCredito = async (cartaCredito: CartaCredito): Promise<void> => {
-  await axios.put('/api/utenti/me/carta-credito', cartaCredito);
+  await axios.put('/utenti/me/carta-credito', cartaCredito);
 };
 
 export const hasCartaCreditoValida = async (): Promise<boolean> => {
-  const response = await axios.get<boolean>('/api/utenti/me/carta-credito/valida');
+  const response = await axios.get<boolean>('/carte-credito/valida');
   return response.data;
 };
 
 export const getCartaCredito = async (): Promise<CartaCredito | null> => {
   try {
-    const response = await axios.get<CartaCredito>('/api/utenti/me/carta-credito');
+    const response = await axios.get<CartaCredito>('/utenti/me/carta-credito');
     return response.data;
   } catch (error) {
     return null;
   }
+};
+
+// Nuove funzioni per multiple carte
+export const getCarteCredito = async (): Promise<CartaCreditoCompleta[]> => {
+  try {
+    const response = await axios.get<CartaCreditoCompleta[]>('/carte-credito');
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error('Errore nel caricamento delle carte:', error);
+    return [];
+  }
+};
+
+export const aggiungiCartaCredito = async (cartaCredito: CartaCredito): Promise<CartaCreditoCompleta> => {
+  const response = await axios.post<CartaCreditoCompleta>('/carte-credito', cartaCredito);
+  return response.data;
+};
+
+export const rimuoviCartaCredito = async (cartaId: number): Promise<void> => {
+  await axios.delete(`/carte-credito/${cartaId}`);
+};
+
+export const impostaCartaPrincipale = async (cartaId: number): Promise<CartaCreditoCompleta> => {
+  const response = await axios.put<CartaCreditoCompleta>(`/carte-credito/${cartaId}/principale`);
+  return response.data;
 };

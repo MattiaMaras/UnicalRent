@@ -5,11 +5,11 @@ services:
     environment:
       POSTGRES_DB: unicalrentdb
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: admin
     volumes:
       - db_app_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "5432:5432"
 
 
   db-kc:

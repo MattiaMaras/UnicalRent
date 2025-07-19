@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { CreditCard, Lock, Calendar, User } from 'lucide-react';
-import { CartaCredito } from '../types';
-import { useToast } from '../contexts/ToastContext';
-import { aggiornaCartaCredito } from '../services/CartaCreditoService';
+import { CreditCard, Calendar, Lock, User } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { CartaCredito } from '../../types';
+import { aggiungiCartaCredito } from '../../services/CartaCreditoService'; // Cambiato import
 
 interface CartaCreditoFormProps {
   onSuccess: () => void;
@@ -123,7 +123,8 @@ const CartaCreditoForm: React.FC<CartaCreditoFormProps> = ({ onSuccess, onCancel
         numeroCarta: formData.numeroCarta.replace(/\s/g, '')
       };
 
-      await aggiornaCartaCredito(cartaData);
+      // Usa aggiungiCartaCredito invece di aggiornaCartaCredito
+      await aggiungiCartaCredito(cartaData);
       showToast('success', 'Carta di credito salvata con successo!');
       onSuccess();
     } catch (error) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Mail, Phone, Calendar, ExternalLink, Shield } from 'lucide-react';
+import GestioneCarteCredito from '../components/CarteCredito/GestioneCarteCredito';
 
 const Profile: React.FC = () => {
   const { user, hasRole } = useAuth();
@@ -34,7 +35,7 @@ const Profile: React.FC = () => {
 
   return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center space-x-3">
@@ -43,12 +44,12 @@ const Profile: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Il Tuo Profilo</h1>
-                <p className="text-gray-600">Gestisci le tue informazioni personali</p>
+                <p className="text-gray-600">Gestisci le tue informazioni personali e metodi di pagamento</p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Profile Info */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -85,7 +86,10 @@ const Profile: React.FC = () => {
             </div>
 
             {/* Forms */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-3 space-y-8">
+              {/* Gestione Carte di Credito */}
+              <GestioneCarteCredito />
+
               {/* Keycloak Account Management */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div className="p-6 border-b border-gray-100">

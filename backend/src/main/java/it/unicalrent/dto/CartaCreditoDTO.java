@@ -3,7 +3,11 @@ package it.unicalrent.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
+import java.time.LocalDateTime;
+
 public class CartaCreditoDTO {
+
+    private Long id;
 
     @NotBlank(message = "Il numero della carta è obbligatorio")
     @Pattern(regexp = "^[0-9]{16}$", message = "Il numero della carta deve contenere esattamente 16 cifre")
@@ -20,6 +24,12 @@ public class CartaCreditoDTO {
     @NotBlank(message = "L'intestatario è obbligatorio")
     private String intestatarioCarta;
 
+    private String tipoCarta;
+    private boolean principale;
+    private boolean mascherata;
+    private LocalDateTime dataCreazione;
+    private boolean scaduta;
+
     // Costruttori
     public CartaCreditoDTO() {}
 
@@ -30,36 +40,34 @@ public class CartaCreditoDTO {
         this.intestatarioCarta = intestatarioCarta;
     }
 
-    // Getter e Setter
-    public String getNumeroCarta() {
-        return numeroCarta;
-    }
+    // Getter e Setter completi
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setNumeroCarta(String numeroCarta) {
-        this.numeroCarta = numeroCarta;
-    }
+    public String getNumeroCarta() { return numeroCarta; }
+    public void setNumeroCarta(String numeroCarta) { this.numeroCarta = numeroCarta; }
 
-    public String getScadenzaCarta() {
-        return scadenzaCarta;
-    }
+    public String getScadenzaCarta() { return scadenzaCarta; }
+    public void setScadenzaCarta(String scadenzaCarta) { this.scadenzaCarta = scadenzaCarta; }
 
-    public void setScadenzaCarta(String scadenzaCarta) {
-        this.scadenzaCarta = scadenzaCarta;
-    }
+    public String getCvvCarta() { return cvvCarta; }
+    public void setCvvCarta(String cvvCarta) { this.cvvCarta = cvvCarta; }
 
-    public String getCvvCarta() {
-        return cvvCarta;
-    }
+    public String getIntestatarioCarta() { return intestatarioCarta; }
+    public void setIntestatarioCarta(String intestatarioCarta) { this.intestatarioCarta = intestatarioCarta; }
 
-    public void setCvvCarta(String cvvCarta) {
-        this.cvvCarta = cvvCarta;
-    }
+    public String getTipoCarta() { return tipoCarta; }
+    public void setTipoCarta(String tipoCarta) { this.tipoCarta = tipoCarta; }
 
-    public String getIntestatarioCarta() {
-        return intestatarioCarta;
-    }
+    public boolean isPrincipale() { return principale; }
+    public void setPrincipale(boolean principale) { this.principale = principale; }
 
-    public void setIntestatarioCarta(String intestatarioCarta) {
-        this.intestatarioCarta = intestatarioCarta;
-    }
+    public boolean isMascherata() { return mascherata; }
+    public void setMascherata(boolean mascherata) { this.mascherata = mascherata; }
+
+    public LocalDateTime getDataCreazione() { return dataCreazione; }
+    public void setDataCreazione(LocalDateTime dataCreazione) { this.dataCreazione = dataCreazione; }
+
+    public boolean isScaduta() { return scaduta; }
+    public void setScaduta(boolean scaduta) { this.scaduta = scaduta; }
 }

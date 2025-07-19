@@ -33,16 +33,23 @@ public class Utente {
 
     // Campi per la carta di credito
     @Pattern(regexp = "^[0-9]{16}$", message = "Il numero della carta deve contenere esattamente 16 cifre")
+    @JsonIgnore // Già aggiunto
     private String numeroCarta;
 
     @Pattern(regexp = "^(0[1-9]|1[0-2])/[0-9]{2}$", message = "La scadenza deve essere nel formato MM/YY")
+    @JsonIgnore // Aggiungi questa annotazione
     private String scadenzaCarta;
 
     @Pattern(regexp = "^[0-9]{3}$", message = "Il CVV deve contenere esattamente 3 cifre")
+    @JsonIgnore // Aggiungi questa annotazione
     private String cvvCarta;
 
-    @NotBlank
+    // Rimuovi @NotBlank da questa riga
     private String intestatarioCarta;
+
+    @OneToMany(mappedBy = "utente", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<CartaCredito> carteCredito = new ArrayList<>();
 
     @OneToMany(mappedBy = "utente", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
@@ -117,6 +124,7 @@ public class Utente {
     }
 
     // Getter e Setter per i campi della carta di credito
+    @JsonIgnore
     public String getNumeroCarta() {
         return numeroCarta;
     }
@@ -125,6 +133,7 @@ public class Utente {
         this.numeroCarta = numeroCarta;
     }
 
+    @JsonIgnore
     public String getScadenzaCarta() {
         return scadenzaCarta;
     }
@@ -133,6 +142,7 @@ public class Utente {
         this.scadenzaCarta = scadenzaCarta;
     }
 
+    @JsonIgnore
     public String getCvvCarta() {
         return cvvCarta;
     }
@@ -141,6 +151,7 @@ public class Utente {
         this.cvvCarta = cvvCarta;
     }
 
+    @JsonIgnore
     public String getIntestatarioCarta() {
         return intestatarioCarta;
     }
@@ -149,11 +160,58 @@ public class Utente {
         this.intestatarioCarta = intestatarioCarta;
     }
 
-    // Metodo per verificare se la carta di credito è completa
+    // Metodo per verificare se la carta di credito è completa (LEGACY)
+    @JsonIgnore
+    @Deprecated
     public boolean hasCartaCredito() {
         return numeroCarta != null && !numeroCarta.trim().isEmpty() &&
                scadenzaCarta != null && !scadenzaCarta.trim().isEmpty() &&
                cvvCarta != null && !cvvCarta.trim().isEmpty() &&
                intestatarioCarta != null && !intestatarioCarta.trim().isEmpty();
     }
+
+    // Metodo aggiornato che controlla prima le nuove carte
+    @JsonIgnore
+    public boolean hasCartaCreditoValida() {
+        // Prima controlla le carte multiple
+        if (hasCarteCredito()) {
+            return true;
+        }
+        // Fallback sui campi legacy
+        return hasCartaCredito();
+    }
+
+    // Metodi per gestire le carte di credito
+    public List<CartaCredito> getCarteCredito() {
+        return carteCredito;
+    }
+
+    public void setCarteCredito(List<CartaCredito> carteCredito) {
+        this.carteCredito = carteCredito;
+    }
+
+    public void aggiungiCartaCredito(CartaCredito carta) {
+        carteCredito.add(carta);
+        carta.setUtente(this);
+    }
+
+    public void rimuoviCartaCredito(CartaCredito carta) {
+        carteCredito.remove(carta);
+        carta.setUtente(null);
+    }
+
+    @JsonIgnore
+    public CartaCredito getCartaPrincipale() {
+        return carteCredito.stream()
+                .filter(CartaCredito::isPrincipale)
+                .findFirst()
+                .orElse(carteCredito.isEmpty() ? null : carteCredito.get(0));
+    }
+
+    @JsonIgnore
+    public boolean hasCarteCredito() {
+        return !carteCredito.isEmpty() && carteCredito.stream().anyMatch(c -> !c.isScaduta());
+    }
+
+    // RIMUOVI COMPLETAMENTE I METODI DUPLICATI DALLE RIGHE 184-193
 }

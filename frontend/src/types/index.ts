@@ -28,6 +28,15 @@ export interface CartaCredito {
     intestatarioCarta: string;
 }
 
+export interface CartaCreditoCompleta extends CartaCredito {
+    id?: number;
+    tipoCarta?: string;
+    principale?: boolean;
+    mascherata?: boolean;
+    dataCreazione?: string;
+    scaduta?: boolean;
+}
+
 export interface Vehicle {
     id: string; // Mantieni string per compatibilità frontend
     targa: string;

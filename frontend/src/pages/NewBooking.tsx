@@ -7,7 +7,7 @@ import { Vehicle } from '../types';
 import { getVeicoli, getDisponibilitaVeicolo, DisponibilitaVeicolo } from '../services/VeicoliService';
 import { creaPrenotazione } from '../services/PrenotazioniService';
 import { hasCartaCreditoValida } from '../services/CartaCreditoService';
-import CartaCreditoForm from '../components/CartaCreditoForm';
+import CartaCreditoForm from '../components/CarteCredito/CartaCreditoForm';
 
 interface ErrorResponse {
   response?: {
