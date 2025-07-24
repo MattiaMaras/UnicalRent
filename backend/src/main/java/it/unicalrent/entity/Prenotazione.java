@@ -41,15 +41,12 @@ public class Prenotazione {
     @Column(length = 2048)
     private String note;
 
-    // Aggiungi questo campo per la data di creazione
     @CreationTimestamp
     @Column(name = "data_creazione", nullable = false, updatable = false)
     private LocalDateTime dataCreazione;
 
     @Version
     private Long version;
-
-    // --- Costruttori ---
 
     public Prenotazione() {}
 
@@ -61,7 +58,6 @@ public class Prenotazione {
         this.stato = StatoPrenotazione.RICHIESTA; // default
     }
 
-    // --- Getters e Setters ---
 
     public Long getId() {
         return id;
@@ -126,8 +122,7 @@ public class Prenotazione {
     public Long getVersion() {
         return version;
     }
-    
-    // Aggiungi getter e setter per dataCreazione
+
     public LocalDateTime getDataCreazione() {
         return dataCreazione;
     }

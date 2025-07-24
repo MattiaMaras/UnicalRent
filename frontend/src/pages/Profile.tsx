@@ -7,7 +7,6 @@ const Profile: React.FC = () => {
   const { user, hasRole } = useAuth();
 
   const handleKeycloakAccountManagement = () => {
-    // Reindirizza alla gestione account Keycloak
     const keycloakAccountUrl = `${import.meta.env.VITE_KEYCLOAK_URL}/realms/${import.meta.env.VITE_KEYCLOAK_REALM}/account`;
     window.open(keycloakAccountUrl, '_blank');
   };

@@ -21,7 +21,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
   }
 
   if (!user) {
-    // Salva la location corrente per redirect dopo login
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

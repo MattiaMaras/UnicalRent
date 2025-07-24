@@ -105,7 +105,6 @@ public class Veicolo {
         this.alimentazione = alimentazione;
     }
 
-    // --- Getters e Setters ---
 
     public Long getId() { return id; }
 

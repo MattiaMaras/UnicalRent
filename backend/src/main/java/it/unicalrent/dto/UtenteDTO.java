@@ -6,11 +6,9 @@ public class UtenteDTO {
     private String email;
     private String nome;
     private String cognome;
-    
-    // Costruttori
+
     public UtenteDTO() {}
-    
-    // Getters e Setters
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     

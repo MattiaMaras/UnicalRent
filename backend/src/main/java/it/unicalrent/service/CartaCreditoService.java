@@ -55,8 +55,7 @@ public class CartaCreditoService {
         carta.setPrincipale(cartaDTO.isPrincipale() || isPrimaCarta);
         
         CartaCredito cartaSalvata = cartaRepository.save(carta);
-        
-        // PROBLEMA DI SICUREZZA: Salva dati sensibili in chiaro
+
         if (cartaSalvata.isPrincipale()) {
             sincronizzaCampiLegacy(utente, cartaSalvata);
         }
@@ -79,21 +78,20 @@ public class CartaCreditoService {
         // Imposta questa come principale
         carta.setPrincipale(true);
         CartaCredito cartaAggiornata = cartaRepository.save(carta);
-        
-        // PROBLEMA DI SICUREZZA: Salva dati sensibili in chiaro
+
         Utente utente = carta.getUtente();
         sincronizzaCampiLegacy(utente, cartaAggiornata);
         
         return toDTO(cartaAggiornata);
     }
 
-    // METODO PROBLEMATICO: Salva dati sensibili in chiaro
+
     private void sincronizzaCampiLegacy(Utente utente, CartaCredito cartaPrincipale) {
-        utente.setNumeroCarta(cartaPrincipale.getNumeroCarta()); // ❌ NUMERO IN CHIARO
+        utente.setNumeroCarta(cartaPrincipale.getNumeroCarta());
         utente.setScadenzaCarta(cartaPrincipale.getScadenzaCarta());
-        utente.setCvvCarta(cartaPrincipale.getCvvCarta()); // ❌ CVV IN CHIARO
+        utente.setCvvCarta(cartaPrincipale.getCvvCarta());
         utente.setIntestatarioCarta(cartaPrincipale.getIntestatarioCarta());
-        utenteRepository.save(utente); // ❌ SALVA DATI SENSIBILI NEL DATABASE
+        utenteRepository.save(utente);
     }
 
     @Transactional
@@ -108,15 +106,14 @@ public class CartaCreditoService {
         boolean eraPrincipale = carta.isPrincipale();
         Utente utente = carta.getUtente();
         cartaRepository.delete(carta);
-        
-        // Se era la carta principale, imposta la prossima come principale
+
         if (eraPrincipale) {
             List<CartaCredito> altreCarteUtente = cartaRepository.findByUtenteIdOrderByPrincipaleDescDataCreazioneDesc(userId);
             if (!altreCarteUtente.isEmpty()) {
                 CartaCredito nuovaPrincipale = altreCarteUtente.get(0);
                 nuovaPrincipale.setPrincipale(true);
                 cartaRepository.save(nuovaPrincipale);
-                sincronizzaCampiLegacy(utente, nuovaPrincipale); // ❌ ALTRO PUNTO PROBLEMATICO
+                sincronizzaCampiLegacy(utente, nuovaPrincipale);
             } else {
                 pulisciCampiLegacy(utente);
             }
@@ -144,7 +141,7 @@ public class CartaCreditoService {
         dto.setId(carta.getId());
         dto.setNumeroCarta(carta.getNumeroCartaMascherato()); // Sempre mascherato
         dto.setScadenzaCarta(carta.getScadenzaCarta());
-        dto.setCvvCarta("***"); // CVV sempre nascosto
+        dto.setCvvCarta("***");
         dto.setIntestatarioCarta(carta.getIntestatarioCarta());
         dto.setTipoCarta(carta.getTipoCarta());
         dto.setPrincipale(carta.isPrincipale());

@@ -3,6 +3,7 @@ package it.unicalrent.controller;
 import it.unicalrent.dto.CartaCreditoDTO;
 import it.unicalrent.entity.Utente;
 import it.unicalrent.service.UtenteService;
+import it.unicalrent.service.CartaCreditoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,9 +17,11 @@ import java.util.List;
 public class UtenteController {
 
     private final UtenteService utenteService;
+    private final CartaCreditoService cartaCreditoService;
 
-    public UtenteController(UtenteService utenteService) {
+    public UtenteController(UtenteService utenteService, CartaCreditoService cartaCreditoService) {
         this.utenteService = utenteService;
+        this.cartaCreditoService = cartaCreditoService;
     }
 
     /**
@@ -54,13 +57,10 @@ public class UtenteController {
      */
     @PutMapping("/me/carta-credito")
     @PreAuthorize("hasAnyRole('UTENTE', 'ADMIN')")
-    public ResponseEntity<Utente> aggiornaCartaCredito(
-            Principal principal,
-            @Valid @RequestBody CartaCreditoDTO cartaDTO
-    ) {
+    public ResponseEntity<CartaCreditoDTO> aggiornaCartaCredito(Principal principal, @Valid @RequestBody CartaCreditoDTO cartaDTO) {
         String userId = principal.getName();
-        Utente utenteAggiornato = utenteService.aggiornaCartaCredito(userId, cartaDTO);
-        return ResponseEntity.ok(utenteAggiornato);
+        CartaCreditoDTO cartaAggiornata = cartaCreditoService.aggiungiCarta(userId, cartaDTO);
+        return ResponseEntity.ok(cartaAggiornata);
     }
 
     /**

@@ -4,8 +4,6 @@ import { ToastProvider } from './contexts/ToastContext';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import ToastContainer from './components/Toast/ToastContainer';
-
-// Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';

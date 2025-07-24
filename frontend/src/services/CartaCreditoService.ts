@@ -28,7 +28,6 @@ export const getCartaCredito = async (): Promise<CartaCredito | null> => {
   }
 };
 
-// Nuove funzioni per multiple carte
 export const getCarteCredito = async (): Promise<CartaCreditoCompleta[]> => {
   try {
     const response = await axios.get<CartaCreditoCompleta[]>('/carte-credito');

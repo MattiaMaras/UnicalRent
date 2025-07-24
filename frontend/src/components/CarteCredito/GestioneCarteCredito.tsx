@@ -27,7 +27,7 @@ const GestioneCarteCredito: React.FC<Props> = ({ onCartaAggiunta }) => {
       setCarte(Array.isArray(carteUtente) ? carteUtente : []);
     } catch (error) {
       console.error('Errore nel caricamento delle carte:', error);
-      setCarte([]); // Imposta array vuoto in caso di errore
+      setCarte([]); // array vuoto in caso di errore
       showToast('error', 'Errore nel caricamento delle carte di credito');
     } finally {
       setLoading(false);

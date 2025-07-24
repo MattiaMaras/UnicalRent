@@ -22,7 +22,7 @@ public class VeicoloController {
 
     private final VeicoloService veicoloService;
     private final VeicoloMapper veicoloMapper;
-    private final PrenotazioneRepository prenotazioneRepository; // Cambiato da ServizioGiornoRepository
+    private final PrenotazioneRepository prenotazioneRepository;
 
     public VeicoloController(VeicoloService veicoloService, VeicoloMapper veicoloMapper, PrenotazioneRepository prenotazioneRepository) {
         this.veicoloService = veicoloService;
@@ -63,7 +63,6 @@ public class VeicoloController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<VeicoloDTO> aggiornaVeicolo(@PathVariable Long id, @Valid @RequestBody VeicoloDTO aggiornato) {
-        // Converti DTO a entità
         Veicolo veicoloAggiornato = veicoloMapper.fromDTO(aggiornato);
         Veicolo veicolo = veicoloService.aggiornaVeicolo(id, veicoloAggiornato);
         return ResponseEntity.ok(veicoloMapper.toDTO(veicolo));
@@ -90,11 +89,11 @@ public class VeicoloController {
             LocalDate oggi = LocalDate.now();
             LocalDate limite = oggi.plusDays(30);
             
-            // Ottieni tutte le prenotazioni attive per questo veicolo
+            // Tutte le prenotazioni attive per questo veicolo
             List<Prenotazione> prenotazioniAttive = prenotazioneRepository.findByVeicoloAndStato(veicolo, StatoPrenotazione.ATTIVA);
             
             for (LocalDate data = oggi; !data.isAfter(limite); data = data.plusDays(1)) {
-                final LocalDate dataCorrente = data; // Crea una copia final per l'uso nella lambda
+                final LocalDate dataCorrente = data; //copia final per l'uso nella lambda
                 boolean isOccupata = prenotazioniAttive.stream()
                     .anyMatch(prenotazione -> {
                         LocalDate inizioPrenotazione = prenotazione.getDataInizio().toLocalDate();

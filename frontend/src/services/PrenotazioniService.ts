@@ -51,8 +51,7 @@ export const creaPrenotazione = async (
             fine: dataFine
         }
     });
-    
-    // Emetti evento per aggiornare la dashboard
+
     window.dispatchEvent(new CustomEvent('dashboard-refresh'));
     
     return response.data;
@@ -63,7 +62,6 @@ export const creaPrenotazione = async (
  */
 export async function cancellaPrenotazione(id: string): Promise<void> {
     await axios.put(`/prenotazioni/${id}/cancella`);
-    
-    // Emetti evento per aggiornare la dashboard
+
     window.dispatchEvent(new CustomEvent('dashboard-refresh'));
 }

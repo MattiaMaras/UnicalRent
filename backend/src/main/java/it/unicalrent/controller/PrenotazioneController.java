@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-// Aggiungi l'import
 import it.unicalrent.dto.PrenotazioneDTO;
 import it.unicalrent.mapper.PrenotazioneMapper;
 

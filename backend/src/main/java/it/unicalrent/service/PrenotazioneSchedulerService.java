@@ -31,15 +31,14 @@ public class PrenotazioneSchedulerService {
      * Task schedulato che viene eseguito ogni 5 minuti per aggiornare
      * le prenotazioni attive scadute a completate.
      */
-    @Scheduled(fixedRate = 300000) // Ogni 5 minuti (300000 ms)
+    @Scheduled(fixedRate = 300000) // Ogni 5 minuti
     @Transactional
     public void aggiornaPrenotazioniScadute() {
         try {
             LocalDateTime now = LocalDateTime.now();
             
-            // Trova tutte le prenotazioni attive con data fine passata
-            List<Prenotazione> prenotazioniScadute = prenotazioneRepo
-                .findByStatoAndDataFineBefore(StatoPrenotazione.ATTIVA, now);
+            // tutte le prenotazioni attive con data fine passata
+            List<Prenotazione> prenotazioniScadute = prenotazioneRepo.findByStatoAndDataFineBefore(StatoPrenotazione.ATTIVA, now);
             
             if (!prenotazioniScadute.isEmpty()) {
                 logger.info("Trovate {} prenotazioni scadute da aggiornare", prenotazioniScadute.size());
@@ -63,7 +62,6 @@ public class PrenotazioneSchedulerService {
     
     /**
      * Metodo manuale per forzare l'aggiornamento delle prenotazioni scadute.
-     * Utile per test o per esecuzione manuale da parte dell'admin.
      */
     @Transactional
     public int aggiornaPrenotazioniScaduteManuale() {

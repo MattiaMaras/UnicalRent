@@ -8,12 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.Optional;
 
-/**
- * Repository per l'entity ServizioGiorno.
- *
- * Offre operazioni CRUD di base e un metodo per recuperare il contatore giornaliero di prenotazioni
- * per un determinato veicolo in una data specifica.
- */
 @Repository
 public interface ServizioGiornoRepository extends JpaRepository<ServizioGiorno, Long> {
 

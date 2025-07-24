@@ -9,7 +9,7 @@ services:
     volumes:
       - db_app_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"  
 
 
   db-kc:
@@ -55,10 +55,10 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-app:5432/unicalrentdb
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
       spring.jpa.hibernate.ddl-auto: update
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/unicalrent
-      KEYCLOAK_AUTH_SERVER_URL: http://keycloak:8080
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8081/realms/unicalrent
+      KEYCLOAK_AUTH_SERVER_URL: http://localhost:8081
       KEYCLOAK_REALM: unicalrent
       KEYCLOAK_CLIENT: unicalrent-client
     depends_on:

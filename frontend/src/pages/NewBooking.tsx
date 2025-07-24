@@ -31,7 +31,6 @@ const NewBooking: React.FC = () => {
   const [loadingDisponibilita, setLoadingDisponibilita] = useState(false);
   const [erroreValidazione, setErroreValidazione] = useState('');
   
-  // Stati mancanti da aggiungere
   const [checkingCarta, setCheckingCarta] = useState(true);
   const [hasCartaValida, setHasCartaValida] = useState(false);
   const [showCartaForm, setShowCartaForm] = useState(false);
@@ -46,13 +45,11 @@ const NewBooking: React.FC = () => {
 
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
-  // Funzione per ottenere la data corrente in formato date
   const getMinDate = () => {
     const now = new Date();
     return now.toISOString().split('T')[0];
   };
 
-  // Funzione per gestire il cambio della data di inizio
   const handleDataInizioChange = (value: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -67,18 +64,15 @@ const NewBooking: React.FC = () => {
     setErroreValidazione('');
     setFormData(prev => ({ ...prev, dataInizio: value }));
     
-    // Se la data di fine è precedente alla nuova data di inizio, resettala
     if (formData.dataFine && value && new Date(value) > new Date(formData.dataFine)) {
       setFormData(prev => ({ ...prev, dataFine: '' }));
     }
   };
 
-  // Funzione per gestire il cambio dell'ora di inizio
   const handleOraInizioChange = (value: string) => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     
-    // Se è oggi, verifica che l'ora non sia nel passato
     if (formData.dataInizio === today) {
       const currentTime = now.toTimeString().slice(0, 5);
       if (value < currentTime) {
@@ -91,7 +85,6 @@ const NewBooking: React.FC = () => {
     setFormData(prev => ({ ...prev, oraInizio: value }));
   };
 
-  // Funzione per gestire il cambio della data di fine
   const handleDataFineChange = (value: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -117,12 +110,10 @@ const NewBooking: React.FC = () => {
     setFormData(prev => ({ ...prev, dataFine: value }));
   };
 
-  // Funzione per gestire il cambio dell'ora di fine
   const handleOraFineChange = (value: string) => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     
-    // Se è oggi, verifica che l'ora non sia nel passato
     if (formData.dataFine === today) {
       const currentTime = now.toTimeString().slice(0, 5);
       if (value < currentTime) {
@@ -131,7 +122,6 @@ const NewBooking: React.FC = () => {
       }
     }
     
-    // Se è lo stesso giorno della data di inizio, verifica che l'ora sia successiva
     if (formData.dataInizio === formData.dataFine && formData.oraInizio && value <= formData.oraInizio) {
       setErroreValidazione('L\'ora di fine deve essere successiva a quella di inizio');
       return;
@@ -163,7 +153,6 @@ const NewBooking: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    // Gestisci i campi di data e ora con validazione
     switch (name) {
       case 'dataInizio':
         handleDataInizioChange(value);
@@ -195,9 +184,8 @@ const NewBooking: React.FC = () => {
     return Math.max(1, ore) * selectedVehicle.costoOrario;
   };
 
-  // Carica disponibilità quando cambia il veicolo
+  // disponibilità quando cambia il veicolo
   useEffect(() => {
-    // Listener per refresh disponibilità dopo annullamento
     const handleAvailabilityRefresh = () => {
       if (formData.veicoloId) {
         setLoadingDisponibilita(true);
@@ -213,7 +201,6 @@ const NewBooking: React.FC = () => {
 
     window.addEventListener('vehicle-availability-refresh', handleAvailabilityRefresh);
     
-    // Carica disponibilità iniziale
     if (formData.veicoloId) {
       setLoadingDisponibilita(true);
       getDisponibilitaVeicolo(formData.veicoloId)
@@ -266,7 +253,6 @@ const NewBooking: React.FC = () => {
     return true;
   };
 
-  // Verifica carta di credito all'avvio
   useEffect(() => {
     const verificaCarta = async () => {
       try {
@@ -294,7 +280,6 @@ const NewBooking: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Verifica carta di credito prima di procedere
     if (!hasCartaValida) {
       setShowCartaForm(true);
       return;
@@ -315,14 +300,12 @@ const NewBooking: React.FC = () => {
       return;
     }
     
-    // Validazione durata minima di un'ora
     const durataMinuti = (fine.getTime() - inizio.getTime()) / (1000 * 60);
     if (durataMinuti < 60) {
       showToast('error', 'La durata minima della prenotazione deve essere di almeno un\'ora');
       return;
     }
 
-    // Verifica disponibilità del periodo selezionato
     if (!isPeriodoDisponibile()) {
       showToast('error', 'Il veicolo non è disponibile in una o più date del periodo selezionato');
       return;
@@ -337,7 +320,6 @@ const NewBooking: React.FC = () => {
       
       const errorResponse = error as ErrorResponse;
       
-      // Gestisci errore carta di credito mancante
       if (errorResponse.response?.data?.messaggio?.includes('carta di credito')) {
         setHasCartaValida(false);
         setShowCartaForm(true);

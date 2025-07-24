@@ -24,7 +24,6 @@ const Dashboard: React.FC = () => {
       setBookings(bookingsData);
     } catch (error: unknown) {
       console.error('Errore aggiornamento dati:', error);
-      // Gestisci l'errore mostrando un messaggio all'utente
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { status: number } };
         if (axiosError.response?.status === 403) {
@@ -47,7 +46,6 @@ const Dashboard: React.FC = () => {
         setBookings(bookingsData);
       } catch (error: unknown) {
         console.error('Errore caricamento dati:', error);
-        // Per gli admin, se fallisce getTuttePrenotazioni, prova con getPrenotazioni
         if (hasRole('ADMIN') && error && typeof error === 'object' && 'response' in error) {
           const axiosError = error as { response?: { status: number } };
           if (axiosError.response?.status === 500) {
@@ -88,81 +86,23 @@ const Dashboard: React.FC = () => {
 
   const isAdmin = hasRole('ADMIN');
   
-  // FIX: Correggi il filtro per le prenotazioni utente
-  const userBookings = bookings.filter(b => 
+  const userBookings = bookings.filter(b =>
     b.utente?.id === user?.id || 
     b.utente?.email === user?.email
   );
 
-  // Correzioni per le statistiche admin
   const activeBookings = bookings.filter(b => b.stato === 'ATTIVA');
-  const completedBookings = bookings.filter(b => b.stato === 'COMPLETATA');
-  
-  // MIGLIORAMENTO: Includi anche prenotazioni attive nei ricavi per mostrare dati più significativi
+
   const revenueBookings = bookings.filter(b => b.stato === 'COMPLETATA' || b.stato === 'ATTIVA');
   const totalRevenue = revenueBookings.reduce((sum, b) => sum + (b.costoTotale || 0), 0);
   const avgBookingValue = revenueBookings.length > 0 ? totalRevenue / revenueBookings.length : 0;
   
-  // Correzioni per le statistiche utente
   const userActiveBookings = userBookings.filter(b => b.stato === 'ATTIVA');
   const userCompletedBookings = userBookings.filter(b => b.stato === 'COMPLETATA');
   const totalSpent = userBookings.filter(b => b.stato === 'COMPLETATA' || b.stato === 'ATTIVA').reduce((sum, b) => sum + (b.costoTotale || 0), 0);
   
   const visibleBookings = isAdmin ? bookings : userBookings;
 
-  // DEBUG SPECIFICO PER RICAVI ADMIN
-  if (isAdmin) {
-    console.log('=== DEBUG RICAVI ADMIN ===');
-    console.log('Total bookings:', bookings.length);
-    console.log('Completed bookings:', completedBookings.length);
-    console.log('Completed bookings details:', completedBookings.map(b => ({
-      id: b.id,
-      stato: b.stato,
-      costoTotale: b.costoTotale,
-      dataInizio: b.dataInizio,
-      veicolo: b.veicolo?.marca + ' ' + b.veicolo?.modello
-    })));
-    console.log('Total revenue calculation:', totalRevenue);
-    console.log('Average booking value:', avgBookingValue);
-    console.log('Revenue per booking:', completedBookings.map(b => b.costoTotale));
-    console.log('========================');
-  }
-  
-  // Debug per capire perché vedi 0 prenotazioni attive
-  console.log('=== DEBUG DASHBOARD ===');
-  console.log('User:', user);
-  console.log('Is Admin:', isAdmin);
-  console.log('Total bookings loaded:', bookings.length);
-  console.log('Raw bookings from API:', bookings);
-  
-  // Debug dettagliato di ogni prenotazione
-  bookings.forEach((booking, index) => {
-    console.log(`Booking ${index + 1}:`, {
-      id: booking.id,
-      stato: booking.stato,
-      utente: booking.utente, // Oggetto completo
-      utenteId: booking.utente?.id,
-      // utenteKeycloakId: booking.utente?.keycloakId,
-      utenteName: booking.utente?.nome,
-      utenteEmail: booking.utente?.email,
-      veicolo: booking.veicolo?.marca + ' ' + booking.veicolo?.modello,
-      dataInizio: booking.dataInizio,
-      costoTotale: booking.costoTotale
-    });
-    // Espandi completamente l'oggetto utente
-    console.log(`Booking ${index + 1} - Utente completo:`, booking.utente);
-  });
-  
-  console.log('User ID to match:', user?.id);
-  console.log('User keycloakId:', user?.keycloakId);
-  console.log('User bookings (filtered by user ID):', userBookings.length);
-  console.log('User active bookings:', userActiveBookings.length);
-  console.log('User completed bookings:', userCompletedBookings.length);
-  console.log('Admin active bookings:', activeBookings.length);
-  console.log('Admin completed bookings:', completedBookings.length);
-  console.log('Visible bookings for current user:', visibleBookings.length);
-  console.log('========================');
-  
   const stats = isAdmin ? [
     {
       title: 'Veicoli Totali',
@@ -255,7 +195,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
             <div className="p-6 border-b border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900">
-                {isAdmin ? 'Prenotazioni Recenti' : 'LeTue Prenotazioni'}
+                {isAdmin ? 'Prenotazioni Recenti' : 'Le Tue Prenotazioni 🗂️'}
               </h3>
             </div>
             <div className="p-0">
@@ -308,8 +248,8 @@ const Dashboard: React.FC = () => {
                       className="bg-blue-600 text-white p-6 rounded-xl hover:bg-blue-700 transition-colors"
                   >
                     <Car className="h-8 w-8 mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Aggiungi Veicolo</h3>
-                    <p className="text-blue-100">Inserisci un nuovo veicolo nella flotta</p>
+                    <h3 className="text-lg font-semibold mb-2">Aggiungi Veicolo 🚗</h3>
+                    <p className="text-blue-100">Inserisci un nuovo veicolo nel parco macchine</p>
                   </Link>
 
                   <Link
@@ -317,15 +257,11 @@ const Dashboard: React.FC = () => {
                       className="bg-green-600 text-white p-6 rounded-xl hover:bg-green-700 transition-colors"
                   >
                     <Users className="h-8 w-8 mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Gestisci Veicoli</h3>
+                    <h3 className="text-lg font-semibold mb-2">Gestisci Veicoli ⚙️</h3>
                     <p className="text-green-100">Modifica o rimuovi veicoli esistenti</p>
                   </Link>
 
-                  <div className="bg-purple-600 text-white p-6 rounded-xl">
-                    <TrendingUp className="h-8 w-8 mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Report</h3>
-                    <p className="text-purple-100">Visualizza statistiche dettagliate</p>
-                  </div>
+                  
                 </>
             ) : (
                 <div className="space-y-6">

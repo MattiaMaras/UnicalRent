@@ -30,7 +30,6 @@ public class CartaCreditoDTO {
     private LocalDateTime dataCreazione;
     private boolean scaduta;
 
-    // Costruttori
     public CartaCreditoDTO() {}
 
     public CartaCreditoDTO(String numeroCarta, String scadenzaCarta, String cvvCarta, String intestatarioCarta) {
@@ -40,7 +39,6 @@ public class CartaCreditoDTO {
         this.intestatarioCarta = intestatarioCarta;
     }
 
-    // Getter e Setter completi
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

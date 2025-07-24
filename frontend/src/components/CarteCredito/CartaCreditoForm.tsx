@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CreditCard, Calendar, Lock, User } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { CartaCredito } from '../../types';
-import { aggiungiCartaCredito } from '../../services/CartaCreditoService'; // Cambiato import
+import { aggiungiCartaCredito } from '../../services/CartaCreditoService';
 
 interface CartaCreditoFormProps {
   onSuccess: () => void;
@@ -22,9 +22,7 @@ const CartaCreditoForm: React.FC<CartaCreditoFormProps> = ({ onSuccess, onCancel
   const [errors, setErrors] = useState<Partial<CartaCredito>>({});
 
   const formatCardNumber = (value: string) => {
-    // Rimuovi tutti i caratteri non numerici
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    // Limita a 16 cifre
     const matches = v.match(/\d{4,16}/g);
     const match = matches && matches[0] || '';
     const parts = [];
@@ -63,7 +61,6 @@ const CartaCreditoForm: React.FC<CartaCreditoFormProps> = ({ onSuccess, onCancel
       [name]: formattedValue
     }));
 
-    // Rimuovi l'errore quando l'utente inizia a digitare
     if (errors[name as keyof CartaCredito]) {
       setErrors(prev => ({
         ...prev,
@@ -75,17 +72,15 @@ const CartaCreditoForm: React.FC<CartaCreditoFormProps> = ({ onSuccess, onCancel
   const validateForm = (): boolean => {
     const newErrors: Partial<CartaCredito> = {};
 
-    // Valida numero carta (16 cifre)
     const numeroSenzaSpazi = formData.numeroCarta.replace(/\s/g, '');
     if (!numeroSenzaSpazi || numeroSenzaSpazi.length !== 16) {
       newErrors.numeroCarta = 'Il numero della carta deve contenere 16 cifre';
     }
 
-    // Valida scadenza (MM/YY)
     if (!formData.scadenzaCarta || !/^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(formData.scadenzaCarta)) {
       newErrors.scadenzaCarta = 'Inserisci una data valida (MM/YY)';
     } else {
-      // Verifica che la carta non sia scaduta
+
       const [month, year] = formData.scadenzaCarta.split('/');
       const expiryDate = new Date(2000 + parseInt(year), parseInt(month) - 1);
       const now = new Date();
@@ -94,12 +89,10 @@ const CartaCreditoForm: React.FC<CartaCreditoFormProps> = ({ onSuccess, onCancel
       }
     }
 
-    // Valida CVV (3 cifre)
     if (!formData.cvvCarta || formData.cvvCarta.length !== 3) {
       newErrors.cvvCarta = 'Il CVV deve contenere 3 cifre';
     }
 
-    // Valida intestatario
     if (!formData.intestatarioCarta.trim()) {
       newErrors.intestatarioCarta = 'L\'intestatario è obbligatorio';
     }
@@ -117,13 +110,10 @@ const CartaCreditoForm: React.FC<CartaCreditoFormProps> = ({ onSuccess, onCancel
 
     setLoading(true);
     try {
-      // Rimuovi gli spazi dal numero della carta prima di inviare
       const cartaData = {
         ...formData,
         numeroCarta: formData.numeroCarta.replace(/\s/g, '')
       };
-
-      // Usa aggiungiCartaCredito invece di aggiornaCartaCredito
       await aggiungiCartaCredito(cartaData);
       showToast('success', 'Carta di credito salvata con successo!');
       onSuccess();

@@ -15,20 +15,16 @@ const Vehicles: React.FC = () => {
     const [selectedFuel, setSelectedFuel] = useState<string>('');
     const [sortBy, setSortBy] = useState<'marca' | 'prezzo' | 'anno'>('marca');
     const [showInactive, setShowInactive] = useState(false);
-    
-    // Stati per il filtro disponibilità
     const [dataInizio, setDataInizio] = useState('');
     const [dataFine, setDataFine] = useState('');
     const [loadingDisponibilita, setLoadingDisponibilita] = useState(false);
     const [erroreValidazione, setErroreValidazione] = useState('');
 
-    // Funzione per ottenere la data corrente in formato date
     const getMinDate = () => {
         const now = new Date();
         return now.toISOString().split('T')[0];
     };
 
-    // Funzione per gestire il cambio della data di inizio
     const handleDataInizioChange = (value: string) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -43,13 +39,11 @@ const Vehicles: React.FC = () => {
         setErroreValidazione('');
         setDataInizio(value);
         
-        // Se la data di fine è precedente o uguale alla nuova data di inizio, resettala
         if (dataFine && value && new Date(value) >= new Date(dataFine)) {
             setDataFine('');
         }
     };
 
-    // Funzione per gestire il cambio della data di fine
     const handleDataFineChange = (value: string) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -74,11 +68,9 @@ const Vehicles: React.FC = () => {
         try {
             let data;
             if (showInactive && hasRole('ADMIN')) {
-                // Carica tutti i veicoli e filtra solo quelli disattivati
                 const allVehicles = await getVeicoliTutti();
                 data = allVehicles.filter(vehicle => !vehicle.attivo);
             } else {
-                // Carica solo i veicoli attivi
                 data = await getVeicoli();
             }
             setVehicles(data);
@@ -94,7 +86,7 @@ const Vehicles: React.FC = () => {
         if (window.confirm('Confermi la riattivazione del veicolo?')) {
             try {
                 await riattivaVeicolo(id);
-                loadVehicles(); // Ricarica la lista
+                loadVehicles();
             } catch (error) {
                 console.error('Errore riattivazione veicolo:', error);
             }
@@ -110,8 +102,7 @@ const Vehicles: React.FC = () => {
             const disponibilita = await getDisponibilitaVeicolo(veicoloId);
             const dataInizioObj = new Date(inizio);
             const dataFineObj = new Date(fine);
-            
-            // Verifica se ci sono date occupate nel periodo selezionato
+
             return !disponibilita.dateOccupate.some(dataOccupata => {
                 const dataOccupataObj = new Date(dataOccupata);
                 return dataOccupataObj >= dataInizioObj && dataOccupataObj <= dataFineObj;
@@ -138,7 +129,6 @@ const Vehicles: React.FC = () => {
                 return matchesSearch && matchesType && matchesFuel;
             });
 
-            // Filtro per disponibilità se le date sono selezionate
             if (dataInizio && dataFine) {
                 const veicoliDisponibili = [];
                 
@@ -152,7 +142,6 @@ const Vehicles: React.FC = () => {
                 filtered = veicoliDisponibili;
             }
 
-            // Ordinamento
             filtered.sort((a, b) => {
                 switch (sortBy) {
                     case 'marca':
@@ -439,7 +428,7 @@ const VehicleCard: React.FC<{
                         className="w-full h-full object-cover"
                         onError={(e) => {
                             e.currentTarget.onerror = null;
-                            e.currentTarget.src = ''; // fallback vuoto
+                            e.currentTarget.src = ''; 
                         }}
                     />
                 ) : (

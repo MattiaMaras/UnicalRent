@@ -54,10 +54,9 @@ const syncUserWithBackend = async (token: string): Promise<User | null> => {
 
     const backendUser = await response.json();
     
-    // Estrai i ruoli dal token per il frontend
+    // ruoli dal token per il frontend
     const rolesFromToken = getRolesFromToken(token);
-    
-    // Crea l'oggetto User combinando dati backend e ruoli dal token
+
     const user: User = {
       id: backendUser.id,
       username: backendUser.email || backendUser.id,
@@ -115,7 +114,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setToken(keycloak.token);
           localStorage.setItem('token', keycloak.token);
 
-          // Sincronizza l'utente con il backend
           const syncedUser = await syncUserWithBackend(keycloak.token);
           if (syncedUser) {
             setUser(syncedUser);
@@ -126,8 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (refreshed && keycloak.token) {
                 setToken(keycloak.token);
                 localStorage.setItem('token', keycloak.token);
-                
-                // Risincronizza con il backend dopo il refresh del token
+
                 const syncedUser = await syncUserWithBackend(keycloak.token);
                 if (syncedUser) {
                   setUser(syncedUser);

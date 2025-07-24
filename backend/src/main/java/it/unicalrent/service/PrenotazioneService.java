@@ -32,11 +32,9 @@ public class PrenotazioneService {
     private final VeicoloRepository veicoloRepo;
     private final PrenotazioneRepository prenotazioneRepo;
     private final ServizioGiornoRepository servizioGiornoRepo;
-    private final UtenteService utenteService; // Aggiungi questa dipendenza
+    private final UtenteService utenteService;
 
-    public PrenotazioneService(UtenteRepository utenteRepo, VeicoloRepository veicoloRepo,
-                               PrenotazioneRepository prenotazioneRepo, ServizioGiornoRepository servizioGiornoRepo,
-                               UtenteService utenteService) {
+    public PrenotazioneService(UtenteRepository utenteRepo, VeicoloRepository veicoloRepo, PrenotazioneRepository prenotazioneRepo, ServizioGiornoRepository servizioGiornoRepo, UtenteService utenteService) {
         this.utenteRepo = utenteRepo;
         this.veicoloRepo = veicoloRepo;
         this.prenotazioneRepo = prenotazioneRepo;
@@ -57,8 +55,7 @@ public class PrenotazioneService {
             nuovo.setEmail(jwt.getClaimAsString("email"));
             nuovo.setNome(jwt.getClaimAsString("given_name"));
             nuovo.setCognome(jwt.getClaimAsString("family_name"));
-            
-            // Estrazione corretta dei ruoli
+
             Ruolo ruolo = Ruolo.UTENTE;
             Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
             if (realmAccess != null && realmAccess.containsKey("roles")) {
@@ -80,12 +77,10 @@ public class PrenotazioneService {
     @Transactional
     @PreAuthorize("hasAnyRole('UTENTE','ADMIN')")
     public Prenotazione creaPrenotazione(String userId, Long veicoloId, LocalDateTime inizio, LocalDateTime fine) {
-        // Verifica che l'utente abbia una carta di credito valida
         if (!utenteService.hasCartaCreditoValida(userId)) {
             throw new IllegalStateException("È necessario inserire una carta di credito valida prima di effettuare una prenotazione");
         }
 
-        // Metodo wrapper che gestisce i retry automaticamente
         int maxRetry = 3;
         for (int tentativo = 1; tentativo <= maxRetry; tentativo++) {
             try {
@@ -94,7 +89,6 @@ public class PrenotazioneService {
                 if (tentativo == maxRetry) {
                     throw new IllegalStateException("Concorrenza troppo alta, riprova più tardi");
                 }
-                // Attendi un po' prima del retry
                 try {
                     Thread.sleep(100 * tentativo);
                 } catch (InterruptedException ie) {
@@ -114,8 +108,7 @@ public class PrenotazioneService {
         if (!inizio.isBefore(fine)) {
             throw new IllegalArgumentException("La data di inizio deve essere precedente alla data di fine.");
         }
-        
-        // Validazione durata minima di un'ora
+
         long minutiDurata = java.time.Duration.between(inizio, fine).toMinutes();
         if (minutiDurata < 60) {
             throw new IllegalArgumentException("La durata minima della prenotazione deve essere di almeno un'ora.");
@@ -125,7 +118,7 @@ public class PrenotazioneService {
         Veicolo veicolo = veicoloRepo.findById(veicoloId)
                 .orElseThrow(() -> new IllegalArgumentException("Veicolo non trovato"));
     
-        // PRIMA incrementiamo ServizioGiorno per ogni giorno (questo forza il lock)
+        // PRIMA incremento ServizioGiorno per ogni giorno (questo forza il lock)
         LocalDate giorno = inizio.toLocalDate();
         while (!giorno.isAfter(fine.toLocalDate())) {
             ServizioGiorno sg = servizioGiornoRepo.findByVeicoloAndData(veicolo, giorno)
@@ -140,7 +133,7 @@ public class PrenotazioneService {
                 
                 boolean sovrapposta = prenotazioneRepo.existsByVeicoloAndStatoAndDataInizioLessThanAndDataFineGreaterThan(
                     veicolo,
-                    StatoPrenotazione.ATTIVA, // Aggiungi questo parametro
+                    StatoPrenotazione.ATTIVA,
                     Math.max(inizio.toEpochSecond(java.time.ZoneOffset.UTC), inizioGiorno.toEpochSecond(java.time.ZoneOffset.UTC)) == inizio.toEpochSecond(java.time.ZoneOffset.UTC) ? fine : fineGiorno,
                     Math.min(fine.toEpochSecond(java.time.ZoneOffset.UTC), fineGiorno.toEpochSecond(java.time.ZoneOffset.UTC)) == fine.toEpochSecond(java.time.ZoneOffset.UTC) ? inizio : inizioGiorno
                 );
@@ -150,7 +143,7 @@ public class PrenotazioneService {
                 }
             }
             
-            // Incrementa il contatore (questo scatena l'optimistic lock se c'è concorrenza)
+            // Incremento il contatore (questo scatena l'optimistic lock se c'è concorrenza)
             sg.incrementaPrenotazioni();
             servizioGiornoRepo.save(sg);
             giorno = giorno.plusDays(1);
@@ -182,8 +175,7 @@ public class PrenotazioneService {
             throw new SecurityException("Non puoi modificare una prenotazione altrui");
         }
 
-        prenotazioneRepo.delete(esistente); // soft-delete futura
-
+        prenotazioneRepo.delete(esistente);
         return creaPrenotazione(userId, esistente.getVeicolo().getId(), nuovoInizio, nuovoFine);
     }
 
@@ -206,15 +198,13 @@ public class PrenotazioneService {
         if (prenotazione.getStato() != StatoPrenotazione.ATTIVA) {
             throw new IllegalArgumentException("Puoi cancellare solo prenotazioni attive");
         }
-    
-        // Verifica la finestra di 2 ore
+
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime twoHoursFromNow = now.plusHours(2);
         if (prenotazione.getDataInizio().isBefore(twoHoursFromNow)) {
             throw new IllegalArgumentException("Non puoi cancellare una prenotazione che inizia tra meno di 2 ore");
         }
-    
-        // Cambia lo stato a ANNULLATA
+
         prenotazione.setStato(StatoPrenotazione.ANNULLATA);
         
         // Decrementa i contatori ServizioGiorno
@@ -241,7 +231,6 @@ public class PrenotazioneService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ADMIN') or #userId == authentication.name")
     public List<Prenotazione> listaPrenotazioniPerUtente(String userId) {
-        // Assicurati che l'utente esista nel database
         getOrCreateUtenteDaJWT(userId);
         return prenotazioneRepo.findByUtenteId(userId);
     }
@@ -253,14 +242,12 @@ public class PrenotazioneService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public void ricalcolaContatori() {
-        // Azzera tutti i contatori
         List<ServizioGiorno> tuttiServizi = servizioGiornoRepo.findAll();
         for (ServizioGiorno sg : tuttiServizi) {
             sg.setNumeroPrenotazioni(0);
             servizioGiornoRepo.save(sg);
         }
-        
-        // Ricalcola basandosi sulle prenotazioni attive
+
         List<Prenotazione> prenotazioniAttive = prenotazioneRepo.findAll().stream()
                 .filter(p -> p.getStato() == StatoPrenotazione.ATTIVA)
                 .collect(Collectors.toList());
@@ -277,16 +264,13 @@ public class PrenotazioneService {
         }
     }
     
-    /**
-     * Elimina definitivamente una prenotazione (solo per ADMIN).
-     */
+
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public void eliminaPrenotazione(Long prenId) {
         Prenotazione prenotazione = prenotazioneRepo.findById(prenId)
                 .orElseThrow(() -> new IllegalArgumentException("Prenotazione non trovata"));
-        
-        // Se la prenotazione è attiva, decrementa i contatori ServizioGiorno
+
         if (prenotazione.getStato() == StatoPrenotazione.ATTIVA) {
             LocalDate giorno = prenotazione.getDataInizio().toLocalDate();
             while (!giorno.isAfter(prenotazione.getDataFine().toLocalDate())) {
@@ -299,8 +283,6 @@ public class PrenotazioneService {
                 giorno = giorno.plusDays(1);
             }
         }
-        
-        // Elimina definitivamente la prenotazione
         prenotazioneRepo.delete(prenotazione);
     }
 }

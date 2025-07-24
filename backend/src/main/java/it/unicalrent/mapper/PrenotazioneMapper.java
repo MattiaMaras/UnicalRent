@@ -29,16 +29,13 @@ public class PrenotazioneMapper {
         dto.setCostoTotale(prenotazione.getCostoTotale());
         dto.setNote(prenotazione.getNote());
 
-        // Gestisci dataCreazione NULL usando dataInizio come fallback
         dto.setDataCreazione(prenotazione.getDataCreazione() != null ?
                 prenotazione.getDataCreazione() : prenotazione.getDataInizio());
 
-        // Usa il VeicoloMapper invece di creazione manuale
         if (prenotazione.getVeicolo() != null) {
             dto.setVeicolo(veicoloMapper.toDTO(prenotazione.getVeicolo()));
         }
 
-        // Mappa l'utente
         if (prenotazione.getUtente() != null) {
             UtenteDTO utenteDTO = new UtenteDTO();
             utenteDTO.setUsername(prenotazione.getUtente().getId()); // Usa ID come username

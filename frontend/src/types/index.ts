@@ -20,7 +20,6 @@ export interface User {
     hasCartaCredito?: boolean;
 }
 
-// Nuova interfaccia per i dati della carta di credito
 export interface CartaCredito {
     numeroCarta: string;
     scadenzaCarta: string;
@@ -38,7 +37,7 @@ export interface CartaCreditoCompleta extends CartaCredito {
 }
 
 export interface Vehicle {
-    id: string; // Mantieni string per compatibilità frontend
+    id: string;
     targa: string;
     marca: string;
     modello: string;
@@ -49,7 +48,7 @@ export interface Vehicle {
     descrizione?: string;
     costoOrario: number;
     attivo: boolean;
-    disponibile?: boolean; // Aggiungi questo campo
+    disponibile?: boolean;
     immagine?: string;
     dataAggiunta: string;
 }

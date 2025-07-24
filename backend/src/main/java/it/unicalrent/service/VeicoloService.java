@@ -45,7 +45,6 @@ public class VeicoloService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public Veicolo creaVeicolo(Veicolo veicolo) {
-        // Imposta valori di default se mancanti
         if (veicolo.getAttivo() == null) {
             veicolo.setAttivo(true);
         }

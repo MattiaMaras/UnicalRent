@@ -11,17 +11,13 @@ public class PrenotazioneDTO {
     private Double costoTotale;
     private String note;
     private LocalDateTime dataCreazione;
-    
-    // Dati del veicolo (solo quelli necessari)
+
     private VeicoloDTO veicolo;
-    
-    // Dati dell'utente (solo quelli necessari)
+
     private UtenteDTO utente;
-    
-    // Costruttori
+
     public PrenotazioneDTO() {}
-    
-    // Getters e Setters
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     

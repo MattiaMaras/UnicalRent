@@ -63,7 +63,6 @@ public class ServizioGiorno {
         this.numeroPrenotazioni = 0;
     }
 
-    // --- Getters e Setters ---
 
     public Long getId() {
         return id;

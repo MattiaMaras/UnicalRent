@@ -18,7 +18,6 @@ const Bookings: React.FC = () => {
     useEffect(() => {
         const loadBookings = async () => {
             try {
-                // Usa getTuttePrenotazioni per admin, getPrenotazioni per utenti normali
                 const data = isAdmin ? await getTuttePrenotazioni() : await getPrenotazioni();
                 if (Array.isArray(data)) {
                     setBookings(data);

@@ -31,8 +31,7 @@ public class VeicoloMapper {
         dto.setDescrizione(veicolo.getDescrizione());
         dto.setAttivo(veicolo.getAttivo());
         dto.setDisponibile(veicolo.getDisponibile());
-        
-        // Converti LocalDate a String
+
         if (veicolo.getDataAggiunta() != null) {
             dto.setDataAggiunta(veicolo.getDataAggiunta().format(DATE_FORMATTER));
         }
@@ -40,7 +39,6 @@ public class VeicoloMapper {
         return dto;
     }
     
-    // Aggiungi il metodo fromDTO mancante
     public Veicolo fromDTO(VeicoloDTO dto) {
         if (dto == null) return null;
         
@@ -58,8 +56,7 @@ public class VeicoloMapper {
         veicolo.setDescrizione(dto.getDescrizione());
         veicolo.setAttivo(dto.getAttivo());
         veicolo.setDisponibile(dto.getDisponibile());
-        
-        // Converti String a LocalDate
+
         if (dto.getDataAggiunta() != null && !dto.getDataAggiunta().isEmpty()) {
             veicolo.setDataAggiunta(LocalDate.parse(dto.getDataAggiunta(), DATE_FORMATTER));
         }

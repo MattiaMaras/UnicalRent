@@ -18,9 +18,9 @@ const AddVehicle: React.FC = () => {
     anno: new Date().getFullYear(),
     tipo: 'AUTO' as Vehicle['tipo'],
     alimentazione: 'BENZINA' as Vehicle['alimentazione'],
-    posti: 4,
+    posti: 5,
     descrizione: '',
-    costoOrario: 10.0,
+    costoOrario: 5.0,
     immagine: '',
     attivo: true,
     dataAggiunta: new Date().toISOString(),
@@ -150,8 +150,8 @@ const AddVehicle: React.FC = () => {
                       name="anno"
                       value={formData.anno}
                       onChange={handleChange}
-                      min="2000"
-                      max={new Date().getFullYear() + 1}
+                      min="1990"
+                      max={new Date().getFullYear()}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

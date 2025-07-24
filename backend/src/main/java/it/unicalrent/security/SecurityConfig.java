@@ -76,10 +76,9 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Collection<GrantedAuthority> authorities = new ArrayList<>();
 
-            // 1) Aggiunge gli scope come authority
             authorities.addAll(scopesConverter.convert(jwt));
 
-            // 2) Ruoli da realm_access.roles
+            //Ruoli da realm_access.roles
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
             if (realmAccess != null && realmAccess.containsKey("roles")) {
                 @SuppressWarnings("unchecked")
@@ -89,7 +88,6 @@ public class SecurityConfig {
                 }
             }
 
-            // 3) Ruoli da resource_access.CLIENT_ID.roles
             Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
             if (resourceAccess != null && resourceAccess.containsKey(CLIENT_ID)) {
                 Map<String, Object> client = (Map<String, Object>) resourceAccess.get(CLIENT_ID);

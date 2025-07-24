@@ -15,7 +15,6 @@ const Login: React.FC = () => {
     const from = location.state?.from?.pathname || '/dashboard';
 
     useEffect(() => {
-        // Se l'utente è già loggato, reindirizza
         if (user) {
             navigate(from, { replace: true });
         }

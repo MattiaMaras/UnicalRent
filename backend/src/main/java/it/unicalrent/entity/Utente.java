@@ -33,18 +33,18 @@ public class Utente {
 
     // Campi per la carta di credito
     @Pattern(regexp = "^[0-9]{16}$", message = "Il numero della carta deve contenere esattamente 16 cifre")
-    @JsonIgnore // Già aggiunto
+    @JsonIgnore 
     private String numeroCarta;
 
     @Pattern(regexp = "^(0[1-9]|1[0-2])/[0-9]{2}$", message = "La scadenza deve essere nel formato MM/YY")
-    @JsonIgnore // Aggiungi questa annotazione
+    @JsonIgnore 
     private String scadenzaCarta;
 
     @Pattern(regexp = "^[0-9]{3}$", message = "Il CVV deve contenere esattamente 3 cifre")
-    @JsonIgnore // Aggiungi questa annotazione
+    @JsonIgnore 
     private String cvvCarta;
 
-    // Rimuovi @NotBlank da questa riga
+
     private String intestatarioCarta;
 
     @OneToMany(mappedBy = "utente", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -123,7 +123,6 @@ public class Utente {
         p.setUtente(null);
     }
 
-    // Getter e Setter per i campi della carta di credito
     @JsonIgnore
     public String getNumeroCarta() {
         return numeroCarta;
@@ -160,7 +159,6 @@ public class Utente {
         this.intestatarioCarta = intestatarioCarta;
     }
 
-    // Metodo per verificare se la carta di credito è completa (LEGACY)
     @JsonIgnore
     @Deprecated
     public boolean hasCartaCredito() {
@@ -170,7 +168,6 @@ public class Utente {
                intestatarioCarta != null && !intestatarioCarta.trim().isEmpty();
     }
 
-    // Metodo aggiornato che controlla prima le nuove carte
     @JsonIgnore
     public boolean hasCartaCreditoValida() {
         // Prima controlla le carte multiple
@@ -181,7 +178,6 @@ public class Utente {
         return hasCartaCredito();
     }
 
-    // Metodi per gestire le carte di credito
     public List<CartaCredito> getCarteCredito() {
         return carteCredito;
     }
@@ -213,5 +209,4 @@ public class Utente {
         return !carteCredito.isEmpty() && carteCredito.stream().anyMatch(c -> !c.isScaduta());
     }
 
-    // RIMUOVI COMPLETAMENTE I METODI DUPLICATI DALLE RIGHE 184-193
 }

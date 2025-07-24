@@ -11,11 +11,9 @@ public class VeicoloDTO {
     private Integer anno;
     private Double costoOrario;
     private String immagine;
-    
-    // Costruttori
+
     public VeicoloDTO() {}
-    
-    // Getters e Setters
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
@@ -45,15 +43,12 @@ public class VeicoloDTO {
     
     public String getImmagine() { return immagine; }
     public void setImmagine(String immagine) { this.immagine = immagine; }
-    
-    // Aggiungi questi campi mancanti
+
     private String descrizione;
     private Boolean attivo;
     private Boolean disponibile;
     private String dataAggiunta; // Come string per il frontend
-    
-    // Getters e Setters
-    // Aggiungi getter e setter per i nuovi campi
+
     public String getDescrizione() { return descrizione; }
     public void setDescrizione(String descrizione) { this.descrizione = descrizione; }
     

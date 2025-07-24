@@ -14,10 +14,13 @@ const Footer: React.FC = () => {
               <span className="text-xl font-bold">Unical Rent</span>
             </div>
             <p className="text-gray-300 mb-4 max-w-md">
-              Il servizio di noleggio veicoli dedicato agli studenti universitari. 
-              Mobilità sostenibile, conveniente e sempre disponibile.
+              Progetto di Piattaforme Software per applicazioni sul web, Università della Calabria,   anno accademico 2024/2025.
             </p>
-            
+             <div className="flex items-center space-x-2">
+                <Mail className="h-5 w-5 text-blue-400" />
+                <span className="text-gray-300">mattiamarasco@unical.it</span>
+              </div>
+
           </div>
 
           {/* Quick Links */}
@@ -26,8 +29,6 @@ const Footer: React.FC = () => {
             <ul className="space-y-2">
               <li><a href="/veicoli" className="text-gray-300 hover:text-white transition-colors">Veicoli Disponibili</a></li>
               <li><a href="/login" className="text-gray-300 hover:text-white transition-colors">Accedi</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">FAQ</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Termini di Servizio</a></li>
             </ul>
           </div>
 
@@ -47,6 +48,7 @@ const Footer: React.FC = () => {
                 <Mail className="h-5 w-5 text-blue-400" />
                 <span className="text-gray-300">info@unicalrent.it</span>
               </div>
+              
             </div>
           </div>
         </div>
@@ -62,7 +64,7 @@ const Footer: React.FC = () => {
           </div>
           <div className="text-center">
             <p className="text-gray-400">
-              © 2024 Unical Rent | Università della Calabria
+              © 2025 Unical Rent | Università della Calabria
               <br />
               A cura di Mattia Marasco
             </p>

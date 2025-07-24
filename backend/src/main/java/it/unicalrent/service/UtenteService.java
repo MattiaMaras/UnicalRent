@@ -34,7 +34,7 @@ public class UtenteService {
     public Utente getOrCreateUtenteDaPrincipal(java.security.Principal principal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-            String userId = jwt.getSubject(); // <-- è SEMPRE presente, NON null
+            String userId = jwt.getSubject();
             return utRepo.findById(userId)
                     .orElseGet(() -> utRepo.save(estraiUtenteDaJwt(jwt)));
         }
@@ -49,8 +49,7 @@ public class UtenteService {
         String email = jwt.getClaimAsString("email");
         String nome = jwt.getClaimAsString("given_name");
         String cognome = jwt.getClaimAsString("family_name");
-    
-        // Estrazione corretta dei ruoli
+
         Ruolo ruolo = Ruolo.UTENTE;
         Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
         if (realmAccess != null && realmAccess.containsKey("roles")) {
@@ -71,9 +70,6 @@ public class UtenteService {
         return u;
     }
 
-    /**
-     * Lista completa utenti (solo admin).
-     */
     @Transactional(readOnly = true)
     public List<Utente> getAllUtenti() {
         return utRepo.findAll();
@@ -89,25 +85,6 @@ public class UtenteService {
     }
 
     /**
-     * Aggiorna i dati della carta di credito per l'utente (DEPRECATO - usa CartaCreditoService)
-     * Mantenuto per compatibilità con endpoint legacy
-     */
-    @Deprecated
-    @Transactional
-    public Utente aggiornaCartaCredito(String userId, CartaCreditoDTO cartaDTO) {
-        Utente utente = utRepo.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + userId));
-
-        // Aggiorna i campi legacy per compatibilità
-        utente.setNumeroCarta(cartaDTO.getNumeroCarta());
-        utente.setScadenzaCarta(cartaDTO.getScadenzaCarta());
-        utente.setCvvCarta(cartaDTO.getCvvCarta());
-        utente.setIntestatarioCarta(cartaDTO.getIntestatarioCarta());
-
-        return utRepo.save(utente);
-    }
-
-    /**
      * Verifica se l'utente ha una carta di credito valida
      * Aggiornato per usare la nuova gestione delle carte multiple
      */
@@ -115,11 +92,9 @@ public class UtenteService {
     public boolean hasCartaCreditoValida(String userId) {
         return utRepo.findById(userId)
                 .map(utente -> {
-                    // Prima controlla le nuove carte multiple
                     if (utente.hasCarteCredito()) {
                         return true;
                     }
-                    // Fallback sui campi legacy per compatibilità
                     return utente.hasCartaCredito();
                 })
                 .orElse(false);
@@ -134,31 +109,29 @@ public class UtenteService {
         Utente utente = utRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + userId));
 
-        // Prima prova a ottenere la carta principale dalle nuove carte
         CartaCredito cartaPrincipale = utente.getCartaPrincipale();
         if (cartaPrincipale != null) {
-            return new CartaCreditoDTO(
-                    cartaPrincipale.getNumeroCarta(), // Già mascherato nel metodo getNumeroCarta()
+            CartaCreditoDTO dto = new CartaCreditoDTO(
+                    cartaPrincipale.getNumeroCarta(),
                     cartaPrincipale.getScadenzaCarta(),
-                    "***", // CVV sempre mascherato
-                    cartaPrincipale.getIntestatarioCarta(),
-                    cartaPrincipale.getTipoCarta(),
-                    cartaPrincipale.isPrincipale()
+                    "***",
+                    cartaPrincipale.getIntestatarioCarta()
             );
+            dto.setTipoCarta(cartaPrincipale.getTipoCarta());
+            dto.setPrincipale(cartaPrincipale.isPrincipale());
+            return dto;
         }
 
-        // Fallback sui campi legacy se non ci sono carte multiple
         if (!utente.hasCartaCredito()) {
             return null;
         }
 
-        // Maschera il numero della carta legacy (mostra solo le ultime 4 cifre)
         String numeroMascherato = "**** **** **** " + utente.getNumeroCarta().substring(12);
         
         return new CartaCreditoDTO(
                 numeroMascherato,
                 utente.getScadenzaCarta(),
-                "***", // CVV sempre mascherato
+                "***",
                 utente.getIntestatarioCarta()
         );
     }
@@ -174,8 +147,6 @@ public class UtenteService {
                     if (cartaPrincipale != null) {
                         return !cartaPrincipale.isScaduta();
                     }
-                    
-                    // Fallback: controlla carta legacy
                     if (utente.hasCartaCredito()) {
                         return !isCartaScaduta(utente.getScadenzaCarta());
                     }
@@ -194,7 +165,7 @@ public class UtenteService {
             LocalDate dataScadenza = LocalDate.parse("01/" + scadenza, DateTimeFormatter.ofPattern("dd/MM/yy"));
             return dataScadenza.isBefore(LocalDate.now());
         } catch (Exception e) {
-            return true; // Se non riesco a parsare, considero scaduta
+            return true;
         }
     }
 }

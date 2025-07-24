@@ -1,4 +1,3 @@
-// src/api/axios.ts
 import axios from 'axios';
 
 const istanzaAxios = axios.create({
@@ -8,11 +7,9 @@ const istanzaAxios = axios.create({
   },
 });
 
-// Intercettore migliorato per aggiungere il token JWT alle richieste
 istanzaAxios.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  
-  // Verifica che il token sia valido prima di aggiungerlo
+
   if (token && isValidToken(token)) {
     config.headers['Authorization'] = `Bearer ${token}`;
   }
@@ -32,14 +29,11 @@ function isValidToken(token: string): boolean {
   }
 }
 
-// Intercettore per gestire errori di autenticazione
 istanzaAxios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token scaduto o non valido, rimuovilo
       localStorage.removeItem('token');
-      // Opzionalmente, reindirizza al login per endpoint protetti
     }
     return Promise.reject(error);
   }

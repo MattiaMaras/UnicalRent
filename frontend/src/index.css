@@ -14,7 +14,6 @@ body {
   min-height: 100vh;
 }
 
-/* Mantieni solo gli stili personalizzati necessari */
 button {
   cursor: pointer;
   transition: all 0.25s;

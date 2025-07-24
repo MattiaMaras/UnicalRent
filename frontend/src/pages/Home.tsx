@@ -65,19 +65,19 @@ const Home: React.FC = () => {
 
     const testimonials = [
         {
-            name: 'Marco Rossi',
+            name: 'Giuseppe Curcio',
             role: 'Studente Ingegneria',
             content: 'Servizio fantastico! Ho risparmiato tantissimo sui trasporti e i veicoli sono sempre in ottime condizioni.',
             rating: 5
         },
         {
-            name: 'Giulia Bianchi',
+            name: 'Giulia Marasco',
             role: 'Studentessa Medicina',
             content: 'Perfetto per gli spostamenti verso l\'ospedale per i tirocini. Prenotazione veloce e prezzi onesti.',
             rating: 5
         },
         {
-            name: 'Luca Verdi',
+            name: 'Luca Giurato',
             role: 'Studente Economia',
             content: 'App intuitiva e servizio clienti eccellente. Lo consiglio a tutti gli studenti!',
             rating: 5

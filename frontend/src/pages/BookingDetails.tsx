@@ -18,11 +18,10 @@ const BookingDetails: React.FC = () => {
     useEffect(() => {
         const loadBooking = async () => {
             try {
-                // FIX: Usa getTuttePrenotazioni per admin, getPrenotazioni per utenti normali
+                //getTuttePrenotazioni per admin, getPrenotazioni per utenti normali
                 const isAdmin = hasRole('ADMIN');
                 const bookings = isAdmin ? await getTuttePrenotazioni() : await getPrenotazioni();
-                
-                // Fix type comparison issue by converting both to string
+
                 const foundBooking = bookings.find(b => b.id.toString() === id);
                 if (foundBooking) {
                     setBooking(foundBooking);
@@ -138,8 +137,7 @@ const BookingDetails: React.FC = () => {
         }
         return `${diffMinutes}m`;
     };
-    
-    // Aggiungi questa funzione dopo getDuraion() (intorno alla riga 138)
+
     const getCostoOrarioEffettivo = () => {
         if (!booking) return 0;
         const start = new Date(booking.dataInizio);

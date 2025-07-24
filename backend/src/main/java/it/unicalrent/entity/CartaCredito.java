@@ -45,7 +45,6 @@ public class CartaCredito {
     @Column(nullable = false)
     private LocalDateTime dataModifica;
 
-    // Costruttori
     public CartaCredito() {
         this.dataCreazione = LocalDateTime.now();
         this.dataModifica = LocalDateTime.now();
@@ -62,7 +61,6 @@ public class CartaCredito {
         this.tipoCarta = tipoCarta;
     }
 
-    // Getter e Setter
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -105,7 +103,6 @@ public class CartaCredito {
     public LocalDateTime getDataModifica() { return dataModifica; }
     public void setDataModifica(LocalDateTime dataModifica) { this.dataModifica = dataModifica; }
 
-    // Metodi di utilità
     public String getNumeroCartaMascherato() {
         if (numeroCarta == null || numeroCarta.length() < 4) {
             return "**** **** **** ****";
